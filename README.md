@@ -27,16 +27,13 @@ Tickets go to [the architecture repository](https://github.com/radicaltools/radi
 never here. When this repository's part of the model is not built, the coding agent proposes the code in a pull
 request, and the Gate decides. When a change crosses both repositories, this one goes first, because the Shop calls it.
 
-## Found by the agents
+## Built from the model
 
-In demo.2 the Warehouse started with two scenarios that no test checked, one of them hiding a bug. What happened to them
-shows that pipeline at work:
+[The pull request](https://github.com/radicaltools/radical.tools.sdlc.demo.3.warehouse/pull/3) that added the estimated delivery date came from the coding agent, with no ticket here. It
+read what changed in the model, built the part this repository answers for, bound its tests to the scenarios, and left
+the Shop's part alone. Its Gate read 28 of 28 requirements verified.
 
-| Where | What was wrong | Who found it | Now |
-|---|---|---|---|
-| Scenario *Same key, other body* | no test, and the stock service answered as if it were a repeat, where it should answer 422 | testing agent, on [the first ticket](https://github.com/radicaltools/radical.tools.sdlc.demo.2.warehouse/pull/3), and the explore agent the same night | fixed by the coding agent, in that pull request; recorded as [F-0002](.radical/crucible/findings/F-0002.md) |
-| Scenario *No release after dispatch* | no test, the code was right | testing agent, in [its proposal](https://github.com/radicaltools/radical.tools.sdlc.demo.2.warehouse/pull/5) | has its test |
-| ADR *Retried writes change nothing* | two dispatches at once with one key book the carrier twice | explore agent, at night, in [the findings it proposed](https://github.com/radicaltools/radical.tools.sdlc.demo.2.warehouse/pull/4) | [F-0001](.radical/crucible/findings/F-0001.md), open, waiting for the coding agent |
+Findings of exploratory rounds are in `.radical/crucible/findings`, some of them still open.
 
 ## Run it on your machine
 
