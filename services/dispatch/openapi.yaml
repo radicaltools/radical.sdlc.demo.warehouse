@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Dispatch service
-  version: 1.1.0
+  version: 1.2.0
   description: Books the carrier for a held reservation, and reads the carrier's status of a dispatched one. Part of the Warehouse.
 paths:
   /dispatches/{reservationId}:
@@ -11,15 +11,16 @@ paths:
         - { name: reservationId, in: path, required: true, schema: { type: string } }
       responses:
         '200':
-          description: The tracking number and the carrier's status of its delivery
+          description: The tracking number, the estimated delivery date and the carrier's status of its delivery
           content:
             application/json:
               schema:
                 type: object
-                required: [reservationId, trackingNumber, status]
+                required: [reservationId, trackingNumber, estimatedDeliveryDate, status]
                 properties:
                   reservationId: { type: string }
                   trackingNumber: { type: string }
+                  estimatedDeliveryDate: { type: [string, 'null'], format: date, description: "The date the carrier gave when it booked the parcel, as it gave it; null when it gave none" }
                   status: { type: string, enum: [in-transit, delivered, lost] }
         '404': { description: No such reservation, or it has not been dispatched }
         '503': { description: The carrier cannot be asked for the status, for instance after a restart of the dispatch service; the reservation stays as it is }
@@ -39,15 +40,16 @@ paths:
                 reservationId: { type: string }
       responses:
         '201':
-          description: The tracking number, the same one for a key already seen
+          description: The tracking number and the estimated delivery date, the same ones for a key already seen
           content:
             application/json:
               schema:
                 type: object
-                required: [reservationId, trackingNumber]
+                required: [reservationId, trackingNumber, estimatedDeliveryDate]
                 properties:
                   reservationId: { type: string }
                   trackingNumber: { type: string }
+                  estimatedDeliveryDate: { type: [string, 'null'], format: date, description: "The date the carrier gave when it booked the parcel, as it gave it; null when it gave none" }
         '400': { description: No key, or no reservationId }
         '404': { description: No such reservation }
         '409': { description: The reservation is not held }

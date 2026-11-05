@@ -2,14 +2,14 @@
 // the stock service take the goods off the shelf. A carrier that was booked is
 // not booked again when the stock service failed after it.
 
-import type { CarrierStatus, Dispatched, DispatchStatus, Reservation } from '@warehouse/contracts'
+import type { Booking, CarrierStatus, Dispatched, DispatchStatus, Reservation } from '@warehouse/contracts'
 
 export interface Neighbours {
   /** The reservation, or undefined when there is none. Throws when stock cannot be reached. */
   reservation(id: string): Promise<Reservation | undefined>
   markDispatched(id: string): Promise<void>
-  /** The tracking number. Throws CarrierDown when the carrier cannot be reached. */
-  book(reservation: Reservation): Promise<string>
+  /** The tracking number and the estimated delivery date, or null. Throws CarrierDown when the carrier cannot be reached. */
+  book(reservation: Reservation): Promise<Booking>
   /** The carrier's status of a parcel. Throws CarrierDown when the carrier does not answer with a known status. */
   parcelStatus(trackingNumber: string): Promise<CarrierStatus>
 }
@@ -27,9 +27,9 @@ export class Dispatcher {
   /** The dispatches still running, by key: a second call with the key waits for the first. */
   private inFlight = new Map<string, Promise<Dispatched>>()
   /** The carrier bookings, by reservation, as promises: a call that comes while one is made shares it. */
-  private booked = new Map<string, Promise<string>>()
-  /** The tracking number of each dispatched reservation, kept in the process as the keys are: a restart loses it. */
-  private trackingNumbers = new Map<string, string>()
+  private booked = new Map<string, Promise<Booking>>()
+  /** The booking of each dispatched reservation, kept in the process as the keys are: a restart loses it. */
+  private bookings = new Map<string, Booking>()
 
   constructor(private neighbours: Neighbours) {}
 
@@ -37,10 +37,11 @@ export class Dispatcher {
   async status(reservationId: string): Promise<DispatchStatus> {
     const reservation = await this.neighbours.reservation(reservationId)
     if (!reservation || reservation.status !== 'dispatched') throw new NotDispatched(`${reservationId} is not dispatched`)
-    const trackingNumber = this.trackingNumbers.get(reservationId)
-    if (!trackingNumber) throw new TrackingLost(`The tracking number of ${reservationId} was lost in a restart`)
+    const booking = this.bookings.get(reservationId)
+    if (!booking) throw new TrackingLost(`The tracking number of ${reservationId} was lost in a restart`)
+    const { trackingNumber, estimatedDeliveryDate } = booking
     const status = await this.neighbours.parcelStatus(trackingNumber)
-    return { reservationId, trackingNumber, status }
+    return { reservationId, trackingNumber, estimatedDeliveryDate, status }
   }
 
   dispatch(key: string, reservationId: string): Promise<Dispatched> {
@@ -66,10 +67,10 @@ export class Dispatcher {
       this.booked.set(reservationId, booking)
       booking.catch(() => { this.booked.delete(reservationId) })
     }
-    const trackingNumber = await booking
+    const { trackingNumber, estimatedDeliveryDate } = await booking
     await this.neighbours.markDispatched(reservationId)
-    this.trackingNumbers.set(reservationId, trackingNumber)
-    const dispatched = { reservationId, trackingNumber }
+    this.bookings.set(reservationId, { trackingNumber, estimatedDeliveryDate })
+    const dispatched = { reservationId, trackingNumber, estimatedDeliveryDate }
     this.byKey.set(key, dispatched)
     return dispatched
   }
