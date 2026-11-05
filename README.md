@@ -31,6 +31,9 @@ Tickets go to [the architecture repository](https://github.com/radicaltools/radi
 never here. When this repository's part of the model is not built, the coding agent proposes the code in a pull
 request, and the Gate decides. When a change crosses both repositories, this one goes first, because the Shop calls it.
 
+The sensor `crosses` runs a pull request's code with the Shop's main branch, so a change that breaks what the Shop calls or
+reads is red here, before it merges. A rename goes in steps: add the new name, move the Shop, then remove the old one.
+
 ## Built from the model
 
 [The pull request](https://github.com/radicaltools/radical.tools.sdlc.demo.3.warehouse/pull/3) that added the estimated delivery date came from the coding agent, with no ticket here. It

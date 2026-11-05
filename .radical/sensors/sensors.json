@@ -5,6 +5,7 @@
     "idempotency": { "command": "npx tsx .standards/sensors/idempotency.mjs" },
     "fuzz": { "command": "node .standards/sensors/fuzz.mjs" },
     "oversell": { "command": "npx tsx .radical/sensors/oversell.mjs" },
-    "smoke": { "command": "node .radical/sensors/smoke.mjs" }
+    "smoke": { "command": "node .radical/sensors/smoke.mjs" },
+    "crosses": { "command": "node .agent/system/pipeline/crosses.mjs" }
   }
 }
