@@ -23,16 +23,19 @@ booked parcel goes on either way.
 
 ## How a change gets here
 
-![A person opens a ticket. The model agent changes the model of the whole system in one pull request. A green Gate and a person's merge start the system loop, which reads what each repository has left and starts the Warehouse first, because the Shop calls it. Its coding agent builds its part, a green Gate and a merge start the loop again, and it starts the Shop. When nothing is left, the loop closes the ticket.](https://raw.githubusercontent.com/radicaltools/radical.tools.sdlc.demo.3.architecture/main/docs/sdlc.svg)
+![A person opens a ticket. The model agent models the change of the whole system on a branch, says on the ticket what it understood, and a review agent reads the change against the ticket. After a green Gate the system loop starts the Warehouse first, because the Shop calls it, then the Shop, each building on the same branch. A coding agent's question goes to the model agent, who answers in the model, and the loop builds again. When every Gate is green, the evidence goes on the ticket, a person accepts it all at once, and the loop merges the model first, then the code.](https://raw.githubusercontent.com/radicaltools/radical.tools.sdlc.demo.3.architecture/main/docs/sdlc.svg)
 
-Yellow is a person, violet an agent on Claude Code, and green has no AI and gives the same answer every time. The dark box is the Gate, the one required check.
+Yellow is a person, violet an agent on Claude Code, and green has no AI and gives the same answer every time. The dark boxes are the Gates, the one required check of each repository.
 
 Tickets go to [the architecture repository](https://github.com/radicaltools/radical.tools.sdlc.demo.3.architecture#how-a-change-gets-through),
-never here. When this repository's part of the model is not built, the coding agent proposes the code in a pull
-request, and the Gate decides. When a change crosses both repositories, this one goes first, because the Shop calls it.
+never here. A change lives on the branch `change/<n>` of its ticket, in the architecture repository and in each
+repository it touches. When this repository's part of the model on that branch is not built, its coding agent builds
+it there, in a draft pull request with the proof of its tests, and the Gate decides. When a change crosses both
+repositories, this one goes first, because the Shop calls it. Nobody merges here by hand: a person accepts the whole change on its ticket, and the
+loop merges every pull request of it.
 
-The sensor `crosses` runs a pull request's code with the Shop's main branch, so a change that breaks what the Shop calls or
-reads is red here, before it merges. A rename goes in steps: add the new name, move the Shop, then remove the old one.
+The sensor `crosses` runs a pull request's code with the Shop's code on the same change's branch, or else its main branch,
+so a change that breaks what the Shop calls or reads, with nothing for the Shop on the branch, is red here.
 
 ## Built from the model
 

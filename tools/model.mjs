@@ -5,8 +5,8 @@
 //
 //   node tools/model.mjs           this repository's part, at the commit .radical/reconciled.json names: what
 //                                  the gate judges, so a change of the model turns nothing red here
-//   node tools/model.mjs --whole   the whole model as main has it, for the agent, with the part in .agent/part
-//                                  and the commit in .agent/desired
+//   node tools/model.mjs --whole [--ref <branch>]   the whole model as main, or a change's branch, has it,
+//                                  for the agent, with the part in .agent/part and the commit in .agent/desired
 import { execFileSync, execSync } from 'node:child_process'
 import { cpSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 
@@ -14,10 +14,13 @@ const ARCHITECTURE = 'https://github.com/radicaltools/radical.tools.sdlc.demo.3.
 const SYSTEM = '.agent/system'
 const WHOLE = `${SYSTEM}/.radical/model`
 const whole = process.argv.includes('--whole')
+const ref = process.argv.includes('--ref') ? process.argv[process.argv.indexOf('--ref') + 1] : 'main'
+if (!/^(main|change\/\d+)$/.test(ref)) throw new Error(`Not a branch of the model: ${ref}`)
 
-execFileSync('git', ['fetch', '--quiet', '--no-tags', ARCHITECTURE, 'main'], { stdio: 'inherit' })
+// Main and the changes in progress: a change's commits are on its branch until a person accepts it.
+execFileSync('git', ['fetch', '--quiet', '--no-tags', ARCHITECTURE, '+refs/heads/main:refs/architecture/main', '+refs/heads/change/*:refs/architecture/change/*'], { stdio: 'inherit' })
 const commit = whole
-  ? execFileSync('git', ['rev-parse', 'FETCH_HEAD'], { encoding: 'utf8' }).trim()
+  ? execFileSync('git', ['rev-parse', `refs/architecture/${ref}`], { encoding: 'utf8' }).trim()
   : JSON.parse(readFileSync('.radical/reconciled.json', 'utf8')).model
 rmSync(SYSTEM, { recursive: true, force: true })
 rmSync('.radical/model', { recursive: true, force: true })
