@@ -1,6 +1,6 @@
 // The real calls to the stock service and the carrier.
 
-import type { Booking, CarrierStatus, Reservation } from '@warehouse/contracts'
+import type { Booking, CarrierStatus, ParcelStatus, Reservation } from '@warehouse/contracts'
 import { CarrierDown, type Neighbours } from './dispatcher.js'
 
 const carrierStatuses: readonly string[] = ['in-transit', 'delivered', 'lost']
@@ -37,9 +37,12 @@ export function neighboursAt(stockUrl: string, carrierUrl: string): Neighbours {
       try {
         const response = await fetch(`${carrierUrl}/parcels/${encodeURIComponent(trackingNumber)}`)
         if (!response.ok) throw new Error(`The carrier answered ${response.status}`)
-        const status = ((await response.json()) as { status?: unknown }).status
+        const answer = (await response.json()) as { status?: unknown; deliveredAt?: unknown }
+        const status = answer.status
         if (typeof status !== 'string' || !carrierStatuses.includes(status)) throw new Error(`The carrier answered the status ${String(status)}`)
-        return status as CarrierStatus
+        // The delivery time is kept as the carrier gave it; a missing one is null, and the dispatcher nulls it for any status but delivered.
+        const deliveredAt = typeof answer.deliveredAt === 'string' ? answer.deliveredAt : null
+        return { status: status as CarrierStatus, deliveredAt } satisfies ParcelStatus
       } catch (error) {
         throw new CarrierDown((error as Error).message)
       }

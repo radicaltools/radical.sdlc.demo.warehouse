@@ -133,6 +133,9 @@
     ] },
     { "element": "46d5dbd2-4398-4577-8b43-58c204f4931d", "name": "Status without a date", "tests": [
       "services/dispatch/test/dispatch.test.ts › carrier status › answers null when the carrier gave no date, and the status without one"
+    ] },
+    { "element": "f1cf2eb2-1819-4162-99c0-42c4987869ab", "name": "Delivered without a time at the carrier", "tests": [
+      "services/dispatch/test/dispatch.test.ts › carrier status › answers delivered without a time when the carrier gives none, and asks the carrier only"
     ] }
   ]
 }
