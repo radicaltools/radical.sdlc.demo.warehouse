@@ -1,0 +1,20 @@
+name: Coding agent
+
+# The label agent:fix on a pull request: the coding agent fixes the code on its branch. Tickets go to
+# the architecture repository, as the model of the system is there.
+
+on:
+  pull_request:
+    types: [labeled]
+
+concurrency:
+  group: coding-agent-${{ github.event.pull_request.number }}
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  agents:
+    uses: radicaltools/radical.tools.sdlc.demo.2.standards/.github/workflows/model-and-code.yml@v2.3.0
+    secrets: inherit

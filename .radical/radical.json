@@ -1,0 +1,126 @@
+{
+  "ci": { "artifacts": ["test-reports"] },
+  "implements": [
+    { "element": "c9564efd-da08-460c-ad95-d11f77748691", "name": "Warehouse", "paths": ["services", "packages"] },
+    { "element": "6ef298ce-4568-470b-898f-2e02d8aa0217", "name": "Stock service", "paths": ["services/stock"] },
+    { "element": "a3739b2d-e64e-4363-b010-c9482f4d06c5", "name": "Dispatch service", "paths": ["services/dispatch"] },
+    { "element": "e1c8d747-d232-49b4-bd1a-db42ac4ea455", "name": "Contracts", "paths": ["packages/contracts"] }
+  ],
+  "verifies": [
+    { "element": "a2f056d8-33d8-4d54-9291-f7f50a3aa81f", "name": "Stock held for a request", "tests": [
+      "services/stock/test/stock.test.ts › stock › holds stock for a request"
+    ] },
+    { "element": "4cf8e71e-83ce-4f1c-af42-66152da94942", "name": "All lines or none", "tests": [
+      "services/stock/test/stock.test.ts › stock › holds all the lines or none"
+    ] },
+    { "element": "da86bea3-f60d-486f-8d52-925f02ccaff5", "name": "Repeat holds once", "tests": [
+      "services/stock/test/stock.test.ts › stock › holds once for a repeated key",
+      "services/stock/test/stock.test.ts › stock › refuses a reservation without a key"
+    ] },
+    { "element": "7f3a9678-5604-4be3-8a68-183cde7c86b6", "name": "Released goods come back", "tests": [
+      "services/stock/test/stock.test.ts › stock › gives released goods back"
+    ] },
+    { "element": "9c55f757-6989-436c-bd48-f984a7efdcbc", "name": "Dispatch books the carrier", "tests": [
+      "services/dispatch/test/dispatch.test.ts › dispatch › books the carrier for a held reservation",
+      "services/dispatch/test/dispatch.test.ts › dispatch › refuses a reservation that is not held",
+      "services/dispatch/test/dispatch.test.ts › dispatch › answers 404 to an unknown reservation",
+      "services/dispatch/test/dispatch.test.ts › dispatch › books once for a repeated key",
+      "services/dispatch/test/dispatch.test.ts › dispatch › does not book again when stock failed after the booking",
+      "tests/stack.test.ts › stack › takes dispatched goods off the shelf"
+    ] },
+    { "element": "f9ec4eeb-dab1-4e6b-b932-724267247bd9", "name": "Carrier down", "tests": [
+      "services/dispatch/test/dispatch.test.ts › dispatch › leaves the reservation held while the carrier is down",
+      "tests/stack.test.ts › stack › keeps a reservation held while the carrier is down"
+    ] },
+    { "element": "f808a6b8-145d-4759-99d4-af799bf94178", "name": "Delivery adds to stock", "tests": [
+      "services/stock/test/stock.test.ts › stock › adds a delivery to what is on hand"
+    ] },
+    { "element": "47b8b5a3-086a-49ab-b275-fb4fd20d6642", "name": "Available is on hand minus held", "tests": [
+      "services/stock/test/stock.test.ts › stock › counts available as on hand minus held"
+    ] },
+    { "element": "caef2e3e-c7be-4289-996e-6a9f18555b4a", "name": "Unknown SKU", "tests": [
+      "services/stock/test/stock.test.ts › stock › answers 404 to an unknown SKU"
+    ] },
+    { "element": "72a67d93-676f-44ab-8263-3bcbaa0df878", "name": "Empty SKU still listed", "tests": [
+      "services/stock/test/stock.test.ts › stock › lists a SKU with nothing on hand or held"
+    ] },
+    { "element": "afd0294b-56f5-4e50-be69-e2418407e7c5", "name": "Empty warehouse lists nothing", "tests": [
+      "services/stock/test/stock.test.ts › stock › lists nothing for a warehouse with no SKU"
+    ] },
+    { "element": "77269ff9-9c28-457b-b53c-a2e4fe08d335", "name": "Whole stock sorted by SKU", "tests": [
+      "services/stock/test/stock.test.ts › stock › lists the whole stock sorted by SKU"
+    ] },
+    { "element": "f879d6e1-8cba-42bb-9d18-32e4d8d2da80", "name": "No release after dispatch", "tests": [
+      "services/stock/test/stock.test.ts › stock › refuses to release a dispatched reservation"
+    ] },
+    { "element": "f5d4294d-c011-4e2b-8780-0cfa61a5113b", "name": "Same key, other body", "tests": [
+      "services/stock/test/stock.test.ts › stock › refuses a reused key with another body"
+    ] },
+    { "element": "9bd4d36c-9692-4fd7-89fb-f1c02676c3dd", "name": "Repeated dispatch books once", "tests": [
+      "services/dispatch/test/dispatch.test.ts › dispatch › books once for two dispatches sent at the same time"
+    ] },
+    { "element": "611d25da-bd80-4c14-878f-ef632acf83c9", "name": "Returned goods come back", "tests": [
+      "services/stock/test/stock.test.ts › stock › puts returned goods back on the shelf"
+    ] },
+    { "element": "d7015b0f-265b-4b18-a010-f6f2b81eef29", "name": "Return refused twice", "tests": [
+      "services/stock/test/stock.test.ts › stock › refuses a return of a reservation already returned"
+    ] },
+    { "element": "d6d4e1ea-7a9a-4f50-b094-e323721a2cad", "name": "Return refused while held", "tests": [
+      "services/stock/test/stock.test.ts › stock › refuses a return of a held reservation"
+    ] },
+    { "element": "23a482b9-4da0-4724-8946-70a186171554", "name": "Return repeat at once", "tests": [
+      "services/stock/test/stock.test.ts › stock › answers the same to two returns sent at once"
+    ] },
+    { "element": "51a75223-9b26-4d60-b873-65250527c5fb", "name": "Return repeat changes nothing", "tests": [
+      "services/stock/test/stock.test.ts › stock › answers a repeated return the same and changes nothing"
+    ] },
+    { "element": "16dc31e4-71db-46ee-8c25-5c11ff2ebc7e", "name": "Return key reused elsewhere", "tests": [
+      "services/stock/test/stock.test.ts › stock › refuses a return key used for another reservation"
+    ] },
+    { "element": "8b162626-cd92-4fa0-9264-2aaaa800c981", "name": "Return of unknown reservation", "tests": [
+      "services/stock/test/stock.test.ts › stock › answers 404 to a return of an unknown reservation"
+    ] },
+    { "element": "3125af3d-40a8-4031-b5a3-a46fdb760037", "name": "Return refused after release", "tests": [
+      "services/stock/test/stock.test.ts › stock › refuses a return of a released reservation"
+    ] },
+    { "element": "67bfba73-d7d7-49ed-b669-8662d61365ec", "name": "Held reservations listed by id", "tests": [
+      "services/stock/test/stock.test.ts › stock › lists the held reservations holding a SKU by id"
+    ] },
+    { "element": "1dfb35ca-570a-4543-8fc1-1fa38c09f6df", "name": "Known SKU with none held", "tests": [
+      "services/stock/test/stock.test.ts › stock › lists an empty list for a known SKU with nothing held"
+    ] },
+    { "element": "4b02588d-fc02-479c-966f-2a94142b1d2d", "name": "Listing changes no stock", "tests": [
+      "services/stock/test/stock.test.ts › stock › lists a reservation holding a SKU without changing any stock"
+    ] },
+    { "element": "414f0388-9620-416f-93d6-2f5abadd1893", "name": "Released and dispatched not listed", "tests": [
+      "services/stock/test/stock.test.ts › stock › does not list released or dispatched reservations"
+    ] },
+    { "element": "c5fa21cf-75f8-485c-94f8-2fe317d059f9", "name": "Unknown SKU reservations", "tests": [
+      "services/stock/test/stock.test.ts › stock › answers 404 to the reservations of an unknown SKU"
+    ] },
+    { "element": "16517c9d-13e8-4927-a4c1-f14c77860588", "name": "Carrier status of a dispatched reservation", "tests": [
+      "services/dispatch/test/dispatch.test.ts › carrier status › answers the carrier status of a dispatched reservation"
+    ] },
+    { "element": "cfe39ca5-e5dd-420e-904b-7c8d38a136cc", "name": "Carrier status delivered", "tests": [
+      "services/dispatch/test/dispatch.test.ts › carrier status › answers delivered when the carrier reports the parcel delivered"
+    ] },
+    { "element": "3165bcd1-fc89-4e7a-a21d-55f37aaba998", "name": "Carrier status of undispatched", "tests": [
+      "services/dispatch/test/dispatch.test.ts › carrier status › answers 404 to a reservation that is held and not dispatched"
+    ] },
+    { "element": "539c9857-3d81-4296-bcde-cfc748be2f2a", "name": "Carrier status of unknown reservation", "tests": [
+      "services/dispatch/test/dispatch.test.ts › carrier status › answers 404 to an unknown reservation"
+    ] },
+    { "element": "5a5c2996-6b13-42ee-9f2a-f18102f79952", "name": "Carrier status unknown value", "tests": [
+      "services/dispatch/test/dispatch.test.ts › carrier status › answers 503 when the carrier answers a status it does not know"
+    ] },
+    { "element": "4e5856e4-cb5c-48d0-bad2-899e16a810ab", "name": "Carrier status while carrier down", "tests": [
+      "services/dispatch/test/dispatch.test.ts › carrier status › answers 503 while the carrier does not answer"
+    ] },
+    { "element": "b653be94-49d8-4ba2-9385-e10c5d5afc60", "name": "Restart answers 503", "tests": [
+      "services/dispatch/test/dispatch.test.ts › carrier status › answers 503 for a dispatched reservation after a restart, without asking the carrier"
+    ] },
+    { "element": "d1d673a7-7b0e-4d39-8329-7b5d8ca649e9", "name": "OpenAPI adds carrier status", "tests": [
+      "services/dispatch/test/openapi.test.ts"
+    ] }
+  ]
+}

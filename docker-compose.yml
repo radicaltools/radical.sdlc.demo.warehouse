@@ -1,0 +1,31 @@
+# The warehouse on one machine, with a stand-in for the carrier. TAG names the images
+# (the deploy: the commit, or the version on a version tag).
+x-service: &service
+  healthcheck:
+    test: ["CMD", "node", "-e", "fetch('http://localhost:3000/health').then(r=>process.exit(r.ok?0:1),()=>process.exit(1))"]
+    interval: 3s
+    timeout: 3s
+    retries: 20
+
+services:
+  stock:
+    <<: *service
+    image: ghcr.io/radicaltools/radical.tools.sdlc.demo.3.warehouse/stock:${TAG:-local}
+    build: { context: ., args: { SERVICE: stock } }
+    ports: ["3011:3000"]
+  carrier:
+    <<: *service
+    image: ghcr.io/radicaltools/radical.tools.sdlc.demo.3.warehouse/dispatch:${TAG:-local}
+    build: { context: ., args: { SERVICE: dispatch } }
+    command: ["node", "/app/tools/carrier-stand-in.mjs"]
+  dispatch:
+    <<: *service
+    image: ghcr.io/radicaltools/radical.tools.sdlc.demo.3.warehouse/dispatch:${TAG:-local}
+    build: { context: ., args: { SERVICE: dispatch } }
+    environment:
+      STOCK_URL: http://stock:3000
+      CARRIER_URL: http://carrier:3000
+    ports: ["3012:3000"]
+    depends_on:
+      stock: { condition: service_healthy }
+      carrier: { condition: service_healthy }

@@ -1,0 +1,140 @@
+openapi: 3.1.0
+info:
+  title: Stock service
+  version: 1.4.0
+  description: What is on the shelves and what is reserved. Part of the Warehouse.
+paths:
+  /reservations:
+    post:
+      summary: Holds every line or none
+      parameters:
+        - { name: Idempotency-Key, in: header, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ReserveRequest' }
+      responses:
+        '201': { description: The reservation, the same one for a key already seen, content: { application/json: { schema: { $ref: '#/components/schemas/Reservation' } } } }
+        '400': { description: No key, or a line without a SKU or a whole quantity above zero }
+        '409': { description: Short of at least one line; nothing is held, content: { application/json: { schema: { $ref: '#/components/schemas/ShortAnswer' } } } }
+        '422': { description: A key already seen with another body; nothing is held }
+  /reservations/{id}:
+    get:
+      summary: Reads a reservation
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200': { description: The reservation, content: { application/json: { schema: { $ref: '#/components/schemas/Reservation' } } } }
+        '404': { description: No such reservation }
+  /reservations/{id}/release:
+    post:
+      summary: Gives the goods of a held reservation back
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200': { description: The released reservation, content: { application/json: { schema: { $ref: '#/components/schemas/Reservation' } } } }
+        '404': { description: No such reservation }
+        '409': { description: It was dispatched already }
+  /reservations/{id}/dispatch:
+    post:
+      summary: Takes the goods of a held reservation off the shelf
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200': { description: The dispatched reservation, content: { application/json: { schema: { $ref: '#/components/schemas/Reservation' } } } }
+        '404': { description: No such reservation }
+        '409': { description: It was released already }
+  /reservations/{id}/return:
+    post:
+      summary: Puts the goods of a dispatched reservation back on the shelf
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+        - { name: Idempotency-Key, in: header, required: true, schema: { type: string } }
+      responses:
+        '200': { description: The returned reservation, the same one for a key already seen with this reservation, content: { application/json: { schema: { $ref: '#/components/schemas/Reservation' } } } }
+        '400': { description: No key }
+        '404': { description: No such reservation; nothing changes }
+        '409': { description: It is not dispatched, held or released, or already returned with another key; nothing changes }
+        '422': { description: A key already seen for another reservation; nothing changes }
+  /stock:
+    get:
+      summary: Lists the whole stock
+      responses:
+        '200': { description: One entry for each SKU the warehouse has a stock item for, sorted by SKU, even one with nothing on hand or held, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/Availability' } } } } }
+  /stock/{sku}:
+    get:
+      summary: How much of a SKU is available
+      parameters:
+        - { name: sku, in: path, required: true, schema: { type: string } }
+      responses:
+        '200': { description: Available is on hand minus held, content: { application/json: { schema: { $ref: '#/components/schemas/Availability' } } } }
+        '404': { description: A SKU the warehouse never had }
+  /stock/{sku}/reservations:
+    get:
+      summary: Lists the held reservations holding a SKU
+      description: Reads only; changes no stock and takes no Idempotency-Key.
+      parameters:
+        - { name: sku, in: path, required: true, schema: { type: string } }
+      responses:
+        '200': { description: One entry for each held reservation holding this SKU, sorted by the number in the reservation id, so r-2 comes before r-10; an empty list when none holds it, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/HeldReservation' } } } } }
+        '404': { description: A SKU the warehouse never had }
+  /stock/receipts:
+    post:
+      summary: Records goods that arrived
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/Line' }
+      responses:
+        '201': { description: What is known of the SKU now, content: { application/json: { schema: { $ref: '#/components/schemas/Availability' } } } }
+        '400': { description: No SKU, or no whole quantity above zero }
+components:
+  schemas:
+    Line:
+      type: object
+      required: [sku, quantity]
+      properties:
+        sku: { type: string }
+        quantity: { type: integer, minimum: 1 }
+    ReserveRequest:
+      type: object
+      required: [lines]
+      properties:
+        lines: { type: array, minItems: 1, items: { $ref: '#/components/schemas/Line' } }
+    Reservation:
+      type: object
+      required: [id, lines, status]
+      properties:
+        id: { type: string }
+        lines: { type: array, items: { $ref: '#/components/schemas/Line' } }
+        status: { type: string, enum: [held, dispatched, released, returned] }
+    ShortAnswer:
+      type: object
+      required: [error, short]
+      properties:
+        error: { type: string }
+        short:
+          type: array
+          items:
+            type: object
+            required: [sku, requested, available]
+            properties:
+              sku: { type: string }
+              requested: { type: integer }
+              available: { type: integer }
+    HeldReservation:
+      type: object
+      required: [id, quantity]
+      properties:
+        id: { type: string }
+        quantity: { type: integer, minimum: 1 }
+    Availability:
+      type: object
+      required: [sku, available, onHand, held]
+      properties:
+        sku: { type: string }
+        available: { type: integer }
+        onHand: { type: integer }
+        held: { type: integer }

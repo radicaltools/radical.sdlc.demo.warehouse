@@ -1,0 +1,7 @@
+node_modules/
+reports/
+.radical/model
+.radical/crucible/rounds/
+.agent/
+.standards
+.claude/skills/

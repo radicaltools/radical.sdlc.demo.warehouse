@@ -1,0 +1,33 @@
+name: Reconcile
+
+# The architecture repository starts this when this repository's part of the model is not built and its
+# work can go. When this repository reaches a commit of the model, this says so there.
+
+on:
+  push:
+    branches: [main]
+    paths: ['.radical/reconciled.json']
+  workflow_dispatch:
+
+concurrency:
+  group: reconcile
+
+permissions:
+  contents: read
+  issues: read
+  pull-requests: read
+
+jobs:
+  tell:
+    name: Tell the architecture repository
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - env:
+          GH_TOKEN: ${{ secrets.AGENT_TOKEN }}
+        run: gh workflow run system.yml --ref main --repo radicaltools/radical.tools.sdlc.demo.3.architecture
+  reconcile:
+    if: github.event_name == 'workflow_dispatch'
+    uses: radicaltools/radical.tools.sdlc.demo.3.architecture/.github/workflows/reconcile-code.yml@main
+    secrets: inherit

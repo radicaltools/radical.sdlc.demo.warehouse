@@ -1,0 +1,54 @@
+openapi: 3.1.0
+info:
+  title: Dispatch service
+  version: 1.1.0
+  description: Books the carrier for a held reservation, and reads the carrier's status of a dispatched one. Part of the Warehouse.
+paths:
+  /dispatches/{reservationId}:
+    get:
+      summary: Reads the carrier's status of a dispatched reservation; changes nothing
+      parameters:
+        - { name: reservationId, in: path, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: The tracking number and the carrier's status of its delivery
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [reservationId, trackingNumber, status]
+                properties:
+                  reservationId: { type: string }
+                  trackingNumber: { type: string }
+                  status: { type: string, enum: [in-transit, delivered, lost] }
+        '404': { description: No such reservation, or it has not been dispatched }
+        '503': { description: The carrier cannot be asked for the status, for instance after a restart of the dispatch service; the reservation stays as it is }
+  /dispatches:
+    post:
+      summary: Books the carrier and takes the goods off the shelf
+      parameters:
+        - { name: Idempotency-Key, in: header, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reservationId]
+              properties:
+                reservationId: { type: string }
+      responses:
+        '201':
+          description: The tracking number, the same one for a key already seen
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [reservationId, trackingNumber]
+                properties:
+                  reservationId: { type: string }
+                  trackingNumber: { type: string }
+        '400': { description: No key, or no reservationId }
+        '404': { description: No such reservation }
+        '409': { description: The reservation is not held }
+        '503': { description: The carrier or the stock service cannot be reached; the reservation stays held }

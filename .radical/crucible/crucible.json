@@ -1,0 +1,85 @@
+{
+  "findings": ".radical/crucible/findings",
+  "runners": [
+    {
+      "files": "services/",
+      "cwd": ".",
+      "command": [
+        "npx",
+        "vitest",
+        "run",
+        "{file}",
+        "-t",
+        "{name}"
+      ]
+    },
+    {
+      "files": "tests/",
+      "cwd": ".",
+      "command": [
+        "npx",
+        "vitest",
+        "run",
+        "{file}",
+        "-t",
+        "{name}"
+      ]
+    }
+  ],
+  "explore": {
+    "rounds": ".radical/crucible/rounds",
+    "brief": "docs/EXPLORING.md",
+    "known": [],
+    "model": ".radical/model",
+    "build": [],
+    "copy": {},
+    "serve": [
+      {
+        "cwd": ".",
+        "command": [
+          "node",
+          "tools/serve-for-explore.mjs",
+          "stock",
+          "{port}",
+          "{hubPort}",
+          "{otherPort}"
+        ],
+        "port": "app"
+      },
+      {
+        "cwd": ".",
+        "command": [
+          "node",
+          "tools/serve-for-explore.mjs",
+          "dispatch",
+          "{port}",
+          "{hubPort}",
+          "{otherPort}"
+        ],
+        "port": "hub"
+      },
+      {
+        "cwd": ".",
+        "command": [
+          "node",
+          "tools/serve-for-explore.mjs",
+          "carrier",
+          "{port}",
+          "{hubPort}",
+          "{otherPort}"
+        ],
+        "port": "other"
+      }
+    ],
+    "ports": 4600,
+    "rules": [
+      "Change nothing in the repository: write only in your run's folder."
+    ]
+  },
+  "fuzz": [
+    {
+      "file": "tests/fuzz/warehouse.fuzz.test.ts",
+      "cwd": "."
+    }
+  ]
+}
