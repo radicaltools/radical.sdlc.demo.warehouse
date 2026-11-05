@@ -14,7 +14,7 @@ export const probes = [{
     const app = buildServer({
       reservation: async (id) => { await aMoment(); return { id, lines: [{ sku: 'mug', quantity: 1 }], status: 'held' } },
       markDispatched: aMoment,
-      book: async () => { await aMoment(); return `T-${++booked}` },
+      book: async () => { await aMoment(); return { trackingNumber: `T-${++booked}`, estimatedDeliveryDate: null } },
       parcelStatus: async () => 'in-transit',
     })
     return {

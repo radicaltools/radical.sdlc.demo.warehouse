@@ -2,7 +2,7 @@ import { createServer } from 'node:http'
 import type { AddressInfo } from 'node:net'
 import type { FastifyInstance } from 'fastify'
 import { describe, expect, it } from 'vitest'
-import type { CarrierStatus, Reservation } from '@warehouse/contracts'
+import type { Booking, CarrierStatus, Reservation } from '@warehouse/contracts'
 import { CarrierDown, type Neighbours } from '../src/dispatcher.js'
 import { neighboursAt } from '../src/neighbours.js'
 import { buildServer } from '../src/server.js'
@@ -14,7 +14,7 @@ function dispatch(overrides: Partial<Neighbours> = {}, reservation: Reservation 
   const app = buildServer({
     reservation: async () => reservation,
     markDispatched: async (id) => { calls.marked.push(id) },
-    book: async () => { calls.booked++; return 'T-1' },
+    book: async () => { calls.booked++; return { trackingNumber: 'T-1', estimatedDeliveryDate: '2026-11-20' } },
     parcelStatus: async () => 'in-transit',
     ...overrides,
   })
@@ -27,7 +27,7 @@ describe('dispatch', () => {
     const { calls, post } = dispatch()
     const response = await post()
     expect(response.statusCode).toBe(201)
-    expect(response.json()).toEqual({ reservationId: 'r-1', trackingNumber: 'T-1' })
+    expect(response.json()).toEqual({ reservationId: 'r-1', trackingNumber: 'T-1', estimatedDeliveryDate: '2026-11-20' })
     expect(calls.booked).toBe(1)
     expect(calls.marked).toEqual(['r-1'])
   })
@@ -57,7 +57,7 @@ describe('dispatch', () => {
     const app = buildServer({
       reservation: async (id) => { await aMoment(); return { ...held, id } },
       markDispatched: aMoment,
-      book: async () => { await aMoment(); calls.booked++; return `T-${calls.booked}` },
+      book: async (): Promise<Booking> => { await aMoment(); calls.booked++; return { trackingNumber: `T-${calls.booked}`, estimatedDeliveryDate: null } },
       parcelStatus: async () => 'in-transit',
     })
     const post = () => app.inject({ method: 'POST', url: '/dispatches', payload: { reservationId: 'r-1' }, headers: { 'idempotency-key': 'K' } })
@@ -76,8 +76,8 @@ describe('dispatch', () => {
   })
 })
 
-/** Stock as the neighbours see it, with the tracking number the carrier books, and what was asked of the carrier. */
-function stockWith(tracking: string, ...reservations: Reservation[]) {
+/** Stock as the neighbours see it. The carrier books each parcel with `tracking` and `estimated` (a date, or null), and what was asked of the carrier is kept. */
+function stockWith(tracking: string, estimated: string | null, ...reservations: Reservation[]) {
   const stored = new Map(reservations.map((r) => [r.id, { ...r }]))
   const calls = { booked: 0, asked: [] as string[] }
   const neighbours: Neighbours = {
@@ -86,7 +86,7 @@ function stockWith(tracking: string, ...reservations: Reservation[]) {
       const reservation = stored.get(id)
       if (reservation) reservation.status = 'dispatched'
     },
-    book: async () => { calls.booked++; return tracking },
+    book: async () => { calls.booked++; return { trackingNumber: tracking, estimatedDeliveryDate: estimated } },
     parcelStatus: async (trackingNumber) => { calls.asked.push(trackingNumber); return 'in-transit' },
   }
   return { stored, calls, neighbours }
@@ -122,18 +122,18 @@ describe('carrier status', () => {
   const statusOf = (app: FastifyInstance, reservationId: string) => app.inject({ method: 'GET', url: `/dispatches/${reservationId}` })
 
   it('answers the carrier status of a dispatched reservation', async () => {
-    const { stored, calls, neighbours } = stockWith('TRK-1', held)
+    const { stored, calls, neighbours } = stockWith('TRK-1', '2026-11-20', held)
     const app = buildServer(neighbours)
     await dispatchR1(app)
     const booked = calls.booked
     const response = await statusOf(app, 'r-1')
     expect(response.statusCode).toBe(200)
-    expect(response.json()).toEqual({ reservationId: 'r-1', trackingNumber: 'TRK-1', status: 'in-transit' })
+    expect(response.json()).toEqual({ reservationId: 'r-1', trackingNumber: 'TRK-1', estimatedDeliveryDate: '2026-11-20', status: 'in-transit' })
     expect(calls.booked).toBe(booked)
     expect(stored.get('r-1')?.status).toBe('dispatched')
   })
   it('answers delivered when the carrier reports the parcel delivered', async () => {
-    const { stored, calls, neighbours } = stockWith('TRK-2', held)
+    const { stored, calls, neighbours } = stockWith('TRK-2', '2026-11-20', held)
     const app = buildServer({
       ...neighbours,
       parcelStatus: async (trackingNumber) => { calls.asked.push(trackingNumber); return 'delivered' as CarrierStatus },
@@ -141,25 +141,48 @@ describe('carrier status', () => {
     await dispatchR1(app)
     const response = await statusOf(app, 'r-1')
     expect(response.statusCode).toBe(200)
-    expect(response.json()).toEqual({ reservationId: 'r-1', trackingNumber: 'TRK-2', status: 'delivered' })
+    expect(response.json()).toEqual({ reservationId: 'r-1', trackingNumber: 'TRK-2', estimatedDeliveryDate: '2026-11-20', status: 'delivered' })
     expect(calls.asked).toEqual(['TRK-2'])
     expect(stored.get('r-1')?.status).toBe('dispatched')
   })
+  it('keeps the estimated date the carrier gave, and answers it again', async () => {
+    const { calls, neighbours } = stockWith('TRK-1', '2026-11-20', held)
+    const app = buildServer(neighbours)
+    const dispatched = await dispatchR1(app)
+    expect(dispatched.statusCode).toBe(201)
+    expect(dispatched.json()).toEqual({ reservationId: 'r-1', trackingNumber: 'TRK-1', estimatedDeliveryDate: '2026-11-20' })
+    const response = await statusOf(app, 'r-1')
+    expect(response.statusCode).toBe(200)
+    expect(response.json()).toMatchObject({ trackingNumber: 'TRK-1', estimatedDeliveryDate: '2026-11-20' })
+    expect(calls.booked).toBe(1)
+  })
+  it('answers null when the carrier gave no date, and the status without one', async () => {
+    const { stored, calls, neighbours } = stockWith('TRK-1', null, held)
+    const app = buildServer(neighbours)
+    const dispatched = await dispatchR1(app)
+    expect(dispatched.statusCode).toBe(201)
+    expect(dispatched.json()).toEqual({ reservationId: 'r-1', trackingNumber: 'TRK-1', estimatedDeliveryDate: null })
+    const response = await statusOf(app, 'r-1')
+    expect(response.statusCode).toBe(200)
+    expect(response.json()).toEqual({ reservationId: 'r-1', trackingNumber: 'TRK-1', estimatedDeliveryDate: null, status: 'in-transit' })
+    expect(calls.booked).toBe(1)
+    expect(stored.get('r-1')?.status).toBe('dispatched')
+  })
   it('answers 404 to a reservation that is held and not dispatched', async () => {
-    const { stored, calls, neighbours } = stockWith('TRK-1', { ...held, id: 'r-2', status: 'held' })
+    const { stored, calls, neighbours } = stockWith('TRK-1', '2026-11-20', { ...held, id: 'r-2', status: 'held' })
     const app = buildServer(neighbours)
     expect((await statusOf(app, 'r-2')).statusCode).toBe(404)
     expect(stored.get('r-2')?.status).toBe('held')
     expect(calls.asked).toEqual([])
   })
   it('answers 404 to an unknown reservation', async () => {
-    const { calls, neighbours } = stockWith('TRK-1', held)
+    const { calls, neighbours } = stockWith('TRK-1', '2026-11-20', held)
     const app = buildServer(neighbours)
     expect((await statusOf(app, 'r-9')).statusCode).toBe(404)
     expect(calls.asked).toEqual([])
   })
   it('answers 503 for a dispatched reservation after a restart, without asking the carrier', async () => {
-    const { stored, calls, neighbours } = stockWith('TRK-1', { ...held, status: 'dispatched' })
+    const { stored, calls, neighbours } = stockWith('TRK-1', '2026-11-20', { ...held, status: 'dispatched' })
     const app = buildServer(neighbours)
     expect((await statusOf(app, 'r-1')).statusCode).toBe(503)
     expect(calls.asked).toEqual([])
@@ -168,7 +191,7 @@ describe('carrier status', () => {
   it('answers 503 when the carrier answers a status it does not know', async () => {
     const carrier = await carrierAt('returned')
     try {
-      const { stored, neighbours } = stockWith('TRK-1', held)
+      const { stored, neighbours } = stockWith('TRK-1', '2026-11-20', held)
       const app = buildServer({ ...neighbours, parcelStatus: neighboursAt('http://127.0.0.1:1', carrier.url).parcelStatus })
       await dispatchR1(app)
       expect((await statusOf(app, 'r-1')).statusCode).toBe(503)
@@ -180,7 +203,7 @@ describe('carrier status', () => {
   it('answers 503 while the carrier does not answer', async () => {
     const carrier = await carrierAt('in-transit')
     try {
-      const { stored, neighbours } = stockWith('TRK-1', held)
+      const { stored, neighbours } = stockWith('TRK-1', '2026-11-20', held)
       const app = buildServer({ ...neighbours, parcelStatus: neighboursAt('http://127.0.0.1:1', carrier.url).parcelStatus })
       await dispatchR1(app)
       carrier.carrier.answering = false

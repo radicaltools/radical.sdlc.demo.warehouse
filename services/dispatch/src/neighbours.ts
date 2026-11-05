@@ -1,6 +1,6 @@
 // The real calls to the stock service and the carrier.
 
-import type { CarrierStatus, Reservation } from '@warehouse/contracts'
+import type { Booking, CarrierStatus, Reservation } from '@warehouse/contracts'
 import { CarrierDown, type Neighbours } from './dispatcher.js'
 
 const carrierStatuses: readonly string[] = ['in-transit', 'delivered', 'lost']
@@ -25,7 +25,10 @@ export function neighboursAt(stockUrl: string, carrierUrl: string): Neighbours {
           body: JSON.stringify({ reference: reservation.id, lines: reservation.lines }),
         })
         if (!response.ok) throw new Error(`The carrier answered ${response.status}`)
-        return ((await response.json()) as { trackingNumber: string }).trackingNumber
+        const answer = (await response.json()) as { trackingNumber: string; estimatedDeliveryDate?: unknown }
+        // The date is kept as the carrier gave it; a missing or null date is null, and does not fail the booking.
+        const estimatedDeliveryDate = typeof answer.estimatedDeliveryDate === 'string' ? answer.estimatedDeliveryDate : null
+        return { trackingNumber: answer.trackingNumber, estimatedDeliveryDate } satisfies Booking
       } catch (error) {
         throw new CarrierDown((error as Error).message)
       }

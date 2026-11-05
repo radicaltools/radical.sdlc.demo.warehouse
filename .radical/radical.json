@@ -121,6 +121,18 @@
     ] },
     { "element": "d1d673a7-7b0e-4d39-8329-7b5d8ca649e9", "name": "OpenAPI adds carrier status", "tests": [
       "services/dispatch/test/openapi.test.ts"
+    ] },
+    { "element": "3f9b8f98-b0ab-4b5c-a813-2523fe246478", "name": "Dispatch without a date", "tests": [
+      "tests/stack.test.ts › stack › takes dispatched goods off the shelf when the carrier gives no date"
+    ] },
+    { "element": "007ba067-d6e2-425f-b50d-1806f5527930", "name": "Estimated date kept as given", "tests": [
+      "services/dispatch/test/dispatch.test.ts › carrier status › keeps the estimated date the carrier gave, and answers it again"
+    ] },
+    { "element": "43b98faf-1176-43e0-9344-cc33f53e8972", "name": "Missing date kept as null", "tests": [
+      "services/dispatch/test/dispatch.test.ts › carrier status › answers null when the carrier gave no date, and the status without one"
+    ] },
+    { "element": "46d5dbd2-4398-4577-8b43-58c204f4931d", "name": "Status without a date", "tests": [
+      "services/dispatch/test/dispatch.test.ts › carrier status › answers null when the carrier gave no date, and the status without one"
     ] }
   ]
 }

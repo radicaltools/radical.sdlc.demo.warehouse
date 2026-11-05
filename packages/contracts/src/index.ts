@@ -31,11 +31,14 @@ export interface Receipt { sku: string; quantity: number }
 
 /** POST /dispatches on the dispatch service, with an Idempotency-Key header. */
 export interface DispatchRequest { reservationId: string }
-export interface Dispatched { reservationId: string; trackingNumber: string }
+/** The carrier's answer to a booking: the tracking number, and the estimated delivery date as the carrier gave it, or null when it gave none. */
+export interface Booking { trackingNumber: string; estimatedDeliveryDate: string | null }
+/** The answer 201 of POST /dispatches on the dispatch service. */
+export interface Dispatched { reservationId: string; trackingNumber: string; estimatedDeliveryDate: string | null }
 
 /** The carrier's status of a parcel, as its GET /parcels/{trackingNumber} reports it. */
 export type CarrierStatus = 'in-transit' | 'delivered' | 'lost'
-/** GET /dispatches/{reservationId} on the dispatch service: the tracking number and the carrier's status of a dispatched reservation. */
-export interface DispatchStatus { reservationId: string; trackingNumber: string; status: CarrierStatus }
+/** GET /dispatches/{reservationId} on the dispatch service: the tracking number, the estimated delivery date (or null) and the carrier's status of a dispatched reservation. */
+export interface DispatchStatus { reservationId: string; trackingNumber: string; estimatedDeliveryDate: string | null; status: CarrierStatus }
 
 export interface ErrorBody { error: string }
