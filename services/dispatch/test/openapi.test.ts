@@ -15,7 +15,7 @@ describe('openapi', () => {
     const get = api.paths['/dispatches/{reservationId}']?.get
     expect(get).toBeDefined()
     expect(Object.keys(get!.responses).sort()).toEqual(['200', '404', '503'])
-    expect(get!.responses['200'].content?.['application/json']?.schema?.required).toEqual(['reservationId', 'trackingNumber', 'estimatedDeliveryDate', 'status'])
+    expect(get!.responses['200'].content?.['application/json']?.schema?.required).toEqual(['reservationId', 'trackingNumber', 'estimatedDeliveryDate', 'status', 'deliveredAt'])
   })
   it('describes the 201 of POST /dispatches with the tracking number and the estimated delivery date', () => {
     const created = api.paths['/dispatches']?.post?.responses['201']

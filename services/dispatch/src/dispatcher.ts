@@ -2,7 +2,7 @@
 // the stock service take the goods off the shelf. A carrier that was booked is
 // not booked again when the stock service failed after it.
 
-import type { Booking, CarrierStatus, Dispatched, DispatchStatus, Reservation } from '@warehouse/contracts'
+import type { Booking, Dispatched, DispatchStatus, ParcelStatus, Reservation } from '@warehouse/contracts'
 
 export interface Neighbours {
   /** The reservation, or undefined when there is none. Throws when stock cannot be reached. */
@@ -10,8 +10,8 @@ export interface Neighbours {
   markDispatched(id: string): Promise<void>
   /** The tracking number and the estimated delivery date, or null. Throws CarrierDown when the carrier cannot be reached. */
   book(reservation: Reservation): Promise<Booking>
-  /** The carrier's status of a parcel. Throws CarrierDown when the carrier does not answer with a known status. */
-  parcelStatus(trackingNumber: string): Promise<CarrierStatus>
+  /** The carrier's status of a parcel, and its delivery time. Throws CarrierDown when the carrier does not answer with a known status. */
+  parcelStatus(trackingNumber: string): Promise<ParcelStatus>
 }
 
 export class UnknownReservation extends Error {}
@@ -40,8 +40,10 @@ export class Dispatcher {
     const booking = this.bookings.get(reservationId)
     if (!booking) throw new TrackingLost(`The tracking number of ${reservationId} was lost in a restart`)
     const { trackingNumber, estimatedDeliveryDate } = booking
-    const status = await this.neighbours.parcelStatus(trackingNumber)
-    return { reservationId, trackingNumber, estimatedDeliveryDate, status }
+    const parcel = await this.neighbours.parcelStatus(trackingNumber)
+    // A delivery time is only given for a delivered parcel; any other status answers null.
+    const deliveredAt = parcel.status === 'delivered' ? parcel.deliveredAt : null
+    return { reservationId, trackingNumber, estimatedDeliveryDate, status: parcel.status, deliveredAt }
   }
 
   dispatch(key: string, reservationId: string): Promise<Dispatched> {

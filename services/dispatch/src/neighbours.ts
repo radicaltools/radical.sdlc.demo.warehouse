@@ -1,6 +1,6 @@
 // The real calls to the stock service and the carrier.
 
-import type { Booking, CarrierStatus, Reservation } from '@warehouse/contracts'
+import type { Booking, CarrierStatus, ParcelStatus, Reservation } from '@warehouse/contracts'
 import { CarrierDown, type Neighbours } from './dispatcher.js'
 
 const carrierStatuses: readonly string[] = ['in-transit', 'delivered', 'lost']
@@ -39,7 +39,8 @@ export function neighboursAt(stockUrl: string, carrierUrl: string): Neighbours {
         if (!response.ok) throw new Error(`The carrier answered ${response.status}`)
         const status = ((await response.json()) as { status?: unknown }).status
         if (typeof status !== 'string' || !carrierStatuses.includes(status)) throw new Error(`The carrier answered the status ${String(status)}`)
-        return status as CarrierStatus
+        // The carrier's field for the delivery time is not in the model yet (see Model questions): until it is, no time is read.
+        return { status: status as CarrierStatus, deliveredAt: null } satisfies ParcelStatus
       } catch (error) {
         throw new CarrierDown((error as Error).message)
       }
