@@ -17,16 +17,26 @@ tools/model.mjs           fetches the model into .radical/model, out of git
 
 Each lane is who does the step. A red arrow is a refusal, and it changes nothing.
 
+`GET /dispatches/{reservationId}` answers the tracking number, the carrier's status and the estimated delivery date of
+a dispatched reservation. The date is kept as the carrier gave it when it booked the parcel, or null if it gave none: a
+booked parcel goes on either way.
+
+## How a change gets here
+
+Tickets go to [the architecture repository](https://github.com/radicaltools/radical.tools.sdlc.demo.3.architecture#how-a-change-gets-through),
+never here. When this repository's part of the model is not built, the coding agent proposes the code in a pull
+request, and the Gate decides. When a change crosses both repositories, this one goes first, because the Shop calls it.
+
 ## Found by the agents
 
-The Warehouse started with two scenarios that no test checked, one of them hiding a bug. What happened to them shows the
-pipeline at work:
+In demo.2 the Warehouse started with two scenarios that no test checked, one of them hiding a bug. What happened to them
+shows that pipeline at work:
 
 | Where | What was wrong | Who found it | Now |
 |---|---|---|---|
-| Scenario *Same key, other body* | no test, and the stock service answered as if it were a repeat, where it should answer 422 | testing agent, on [the first ticket](https://github.com/radicaltools/radical.tools.sdlc.demo.3.warehouse/pull/3), and the explore agent the same night | fixed by the coding agent, in that pull request; recorded as [F-0002](.radical/crucible/findings/F-0002.md) |
-| Scenario *No release after dispatch* | no test, the code was right | testing agent, in [its proposal](https://github.com/radicaltools/radical.tools.sdlc.demo.3.warehouse/pull/5) | has its test |
-| ADR *Retried writes change nothing* | two dispatches at once with one key book the carrier twice | explore agent, at night, in [the findings it proposed](https://github.com/radicaltools/radical.tools.sdlc.demo.3.warehouse/pull/4) | [F-0001](.radical/crucible/findings/F-0001.md), open, waiting for the coding agent |
+| Scenario *Same key, other body* | no test, and the stock service answered as if it were a repeat, where it should answer 422 | testing agent, on [the first ticket](https://github.com/radicaltools/radical.tools.sdlc.demo.2.warehouse/pull/3), and the explore agent the same night | fixed by the coding agent, in that pull request; recorded as [F-0002](.radical/crucible/findings/F-0002.md) |
+| Scenario *No release after dispatch* | no test, the code was right | testing agent, in [its proposal](https://github.com/radicaltools/radical.tools.sdlc.demo.2.warehouse/pull/5) | has its test |
+| ADR *Retried writes change nothing* | two dispatches at once with one key book the carrier twice | explore agent, at night, in [the findings it proposed](https://github.com/radicaltools/radical.tools.sdlc.demo.2.warehouse/pull/4) | [F-0001](.radical/crucible/findings/F-0001.md), open, waiting for the coding agent |
 
 ## Run it on your machine
 
@@ -38,4 +48,3 @@ npm run stack            # the services on :3011 and :3012, with a stand-in for 
 ```
 
 The whole model opens in [Radical Studio](https://radical.tools) from the architecture repository.
-`npm run hooks` keeps the other models and the test results of CI up to date.
