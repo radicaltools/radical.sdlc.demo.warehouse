@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Dispatch service
-  version: 1.3.0
+  version: 1.4.0
   description: Books the carrier for a held reservation, and reads the carrier's status of a dispatched one. Part of the Warehouse.
 paths:
   /dispatches/{reservationId}:
@@ -39,6 +39,15 @@ paths:
               required: [reservationId]
               properties:
                 reservationId: { type: string }
+                deliveryAddress:
+                  type: object
+                  description: "The address the parcel goes to, as the Shop gives it; optional, and a dispatch without it books the carrier without one"
+                  required: [street, city, postalCode, country]
+                  properties:
+                    street: { type: string }
+                    city: { type: string }
+                    postalCode: { type: string }
+                    country: { type: string, description: "The country as the Shop gave it, passed on to the carrier unchecked; a two-letter code such as PL" }
       responses:
         '201':
           description: The tracking number and the estimated delivery date, the same ones for a key already seen

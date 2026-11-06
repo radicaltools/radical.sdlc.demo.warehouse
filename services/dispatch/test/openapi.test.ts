@@ -7,6 +7,7 @@ import { parse } from 'yaml'
 
 type Responses = Record<string, { description?: string; content?: { 'application/json'?: { schema?: { required?: string[] } } } }>
 interface Api { paths: Record<string, Record<string, { responses: Responses }>> }
+interface Body { required?: string[]; properties: Record<string, { required?: string[]; properties?: Record<string, unknown> }> }
 
 const api = parse(readFileSync(new URL('../openapi.yaml', import.meta.url), 'utf8')) as Api
 
@@ -20,6 +21,13 @@ describe('openapi', () => {
   it('describes the 201 of POST /dispatches with the tracking number and the estimated delivery date', () => {
     const created = api.paths['/dispatches']?.post?.responses['201']
     expect(created?.content?.['application/json']?.schema?.required).toEqual(['reservationId', 'trackingNumber', 'estimatedDeliveryDate'])
+  })
+  it('describes the body of POST /dispatches with reservationId required and deliveryAddress optional', () => {
+    const body = (api.paths['/dispatches'].post as unknown as { requestBody: { content: { 'application/json': { schema: Body } } } }).requestBody.content['application/json'].schema
+    expect(body.required).toEqual(['reservationId'])
+    expect(Object.keys(body.properties).sort()).toEqual(['deliveryAddress', 'reservationId'])
+    expect(body.properties.deliveryAddress.required).toEqual(['street', 'city', 'postalCode', 'country'])
+    expect(Object.keys(body.properties.deliveryAddress.properties ?? {}).sort()).toEqual(['city', 'country', 'postalCode', 'street'])
   })
   it('removes and renames nothing of the pinned description', () => {
     // The operation and answers of the version before the addition (1.0.0), which clients rely on.

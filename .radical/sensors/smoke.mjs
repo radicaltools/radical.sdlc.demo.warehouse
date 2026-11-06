@@ -25,7 +25,9 @@ try {
   const sku = `smoke-${Date.now()}`
   await post(`${stock}/stock/receipts`, { sku, quantity: 5 })
   const reservation = await post(`${stock}/reservations`, { lines: [{ sku, quantity: 2 }] }, `${sku}-reserve`)
-  const { trackingNumber } = await post(`${dispatch}/dispatches`, { reservationId: reservation.id }, `${sku}-dispatch`)
+  // A dispatch goes to an address (ticket #22 of the architecture repository); one from before ignores it.
+  const deliveryAddress = { street: 'Dluga 1', city: 'Warsaw', postalCode: '00-001', country: 'PL' }
+  const { trackingNumber } = await post(`${dispatch}/dispatches`, { reservationId: reservation.id, deliveryAddress }, `${sku}-dispatch`)
   if (!trackingNumber) fail('No tracking number.')
   const { onHand, held } = await (await fetch(`${stock}/stock/${sku}`)).json()
   if (onHand !== 3 || held !== 0) fail(`After the dispatch ${onHand} on hand and ${held} held, not 3 and 0.`)

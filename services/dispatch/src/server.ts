@@ -24,7 +24,7 @@ export function buildServer(neighbours: Neighbours): FastifyInstance {
     if (typeof key !== 'string' || !key) return reply.code(400).send({ error: 'A dispatch needs an Idempotency-Key header' })
     if (typeof request.body?.reservationId !== 'string') return reply.code(400).send({ error: 'A dispatch needs a reservationId' })
     try {
-      return reply.code(201).send(await dispatcher.dispatch(key, request.body.reservationId))
+      return reply.code(201).send(await dispatcher.dispatch(key, request.body.reservationId, request.body.deliveryAddress))
     } catch (error) {
       if (error instanceof UnknownReservation) return reply.code(404).send({ error: error.message })
       if (error instanceof NotHeld) return reply.code(409).send({ error: error.message })

@@ -8,17 +8,18 @@ import { neighboursAt } from '../src/neighbours.js'
 import { buildServer } from '../src/server.js'
 
 const held: Reservation = { id: 'r-1', lines: [{ sku: 'grinder', quantity: 3 }], status: 'held' }
+const address = { street: 'Dluga 1', city: 'Warsaw', postalCode: '00-001', country: 'PL' }
 
 function dispatch(overrides: Partial<Neighbours> = {}, reservation: Reservation | undefined = held) {
-  const calls = { booked: 0, marked: [] as string[] }
+  const calls = { booked: 0, marked: [] as string[], addresses: [] as unknown[] }
   const app = buildServer({
     reservation: async () => reservation,
     markDispatched: async (id) => { calls.marked.push(id) },
-    book: async () => { calls.booked++; return { trackingNumber: 'T-1', estimatedDeliveryDate: '2026-11-20' } },
+    book: async (_reservation, deliveryAddress) => { calls.booked++; calls.addresses.push(deliveryAddress); return { trackingNumber: 'T-1', estimatedDeliveryDate: '2026-11-20' } },
     parcelStatus: async () => ({ status: 'in-transit', deliveredAt: null }),
     ...overrides,
   })
-  const post = (key = 'A') => app.inject({ method: 'POST', url: '/dispatches', payload: { reservationId: 'r-1' }, headers: { 'idempotency-key': key } })
+  const post = (key = 'A') => app.inject({ method: 'POST', url: '/dispatches', payload: { reservationId: 'r-1', deliveryAddress: address }, headers: { 'idempotency-key': key } })
   return { calls, post }
 }
 
@@ -29,6 +30,7 @@ describe('dispatch', () => {
     expect(response.statusCode).toBe(201)
     expect(response.json()).toEqual({ reservationId: 'r-1', trackingNumber: 'T-1', estimatedDeliveryDate: '2026-11-20' })
     expect(calls.booked).toBe(1)
+    expect(calls.addresses).toEqual([address])
     expect(calls.marked).toEqual(['r-1'])
   })
   it('leaves the reservation held while the carrier is down', async () => {
@@ -60,7 +62,7 @@ describe('dispatch', () => {
       book: async (): Promise<Booking> => { await aMoment(); calls.booked++; return { trackingNumber: `T-${calls.booked}`, estimatedDeliveryDate: null } },
       parcelStatus: async () => ({ status: 'in-transit', deliveredAt: null }),
     })
-    const post = () => app.inject({ method: 'POST', url: '/dispatches', payload: { reservationId: 'r-1' }, headers: { 'idempotency-key': 'K' } })
+    const post = () => app.inject({ method: 'POST', url: '/dispatches', payload: { reservationId: 'r-1', deliveryAddress: address }, headers: { 'idempotency-key': 'K' } })
     const [first, second] = await Promise.all([post(), post()])
     expect(first.statusCode).toBe(201)
     expect(second.json()).toEqual(first.json())
@@ -116,8 +118,8 @@ async function carrierAt(status: string) {
 }
 
 describe('carrier status', () => {
-  const dispatchR1 = (app: FastifyInstance) => app.inject({
-    method: 'POST', url: '/dispatches', payload: { reservationId: 'r-1' }, headers: { 'idempotency-key': 'A' },
+  const dispatchR1 = (app: FastifyInstance, deliveryAddress?: object) => app.inject({
+    method: 'POST', url: '/dispatches', payload: { reservationId: 'r-1', deliveryAddress }, headers: { 'idempotency-key': 'A' },
   })
   const statusOf = (app: FastifyInstance, reservationId: string) => app.inject({ method: 'GET', url: `/dispatches/${reservationId}` })
 
@@ -162,7 +164,7 @@ describe('carrier status', () => {
   it('keeps the estimated date the carrier gave, and answers it again', async () => {
     const { calls, neighbours } = stockWith('TRK-1', '2026-11-20', held)
     const app = buildServer(neighbours)
-    const dispatched = await dispatchR1(app)
+    const dispatched = await dispatchR1(app, address)
     expect(dispatched.statusCode).toBe(201)
     expect(dispatched.json()).toEqual({ reservationId: 'r-1', trackingNumber: 'TRK-1', estimatedDeliveryDate: '2026-11-20' })
     const response = await statusOf(app, 'r-1')
@@ -173,7 +175,7 @@ describe('carrier status', () => {
   it('answers null when the carrier gave no date, and the status without one', async () => {
     const { stored, calls, neighbours } = stockWith('TRK-1', null, held)
     const app = buildServer(neighbours)
-    const dispatched = await dispatchR1(app)
+    const dispatched = await dispatchR1(app, address)
     expect(dispatched.statusCode).toBe(201)
     expect(dispatched.json()).toEqual({ reservationId: 'r-1', trackingNumber: 'TRK-1', estimatedDeliveryDate: null })
     const response = await statusOf(app, 'r-1')
