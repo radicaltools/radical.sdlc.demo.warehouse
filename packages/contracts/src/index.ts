@@ -39,7 +39,7 @@ export interface Booking { trackingNumber: string; estimatedDeliveryDate: string
 export interface Dispatched { reservationId: string; trackingNumber: string; estimatedDeliveryDate: string | null }
 
 /** The carrier's status of a parcel, as its GET /parcels/{trackingNumber} reports it. */
-export type CarrierStatus = 'in-transit' | 'delivered' | 'lost'
+export type CarrierStatus = 'in-transit' | 'out-for-delivery' | 'delivered' | 'lost'
 /** The carrier's status of a parcel, and the date and time it was delivered as the carrier gave it (or null when it gave none). */
 export interface ParcelStatus { status: CarrierStatus; deliveredAt: string | null }
 /** GET /dispatches/{reservationId} on the dispatch service: the tracking number, the estimated delivery date (or null), the carrier's status of a dispatched reservation, and the delivery date and time (or null unless delivered). */

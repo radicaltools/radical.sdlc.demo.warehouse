@@ -3,7 +3,7 @@
 import type { Booking, CarrierStatus, DeliveryAddress, ParcelStatus, Reservation } from '@warehouse/contracts'
 import { CarrierDown, type Neighbours } from './dispatcher.js'
 
-const carrierStatuses: readonly string[] = ['in-transit', 'delivered', 'lost']
+const carrierStatuses: readonly string[] = ['in-transit', 'out-for-delivery', 'delivered', 'lost']
 
 export function neighboursAt(stockUrl: string, carrierUrl: string): Neighbours {
   return {

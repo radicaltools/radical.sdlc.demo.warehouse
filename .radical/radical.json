@@ -149,6 +149,9 @@
     ] },
     { "element": "854d75c4-f913-479e-ab31-a539af0ac836", "name": "Unchecked address forwarded", "tests": [
       "tests/stack.test.ts › stack › forwards an address the Warehouse does not check, and keeps the reservation held"
+    ] },
+    { "element": "de5d2cb5-36bd-463b-9336-1625671cc9d1", "name": "Carrier status out for delivery", "tests": [
+      "services/dispatch/test/dispatch.test.ts › carrier status › answers out-for-delivery when the carrier reports the parcel out for delivery"
     ] }
   ]
 }
