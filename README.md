@@ -17,9 +17,11 @@ tools/model.mjs           fetches the model into .radical/model, out of git
 
 Each lane is who does the step. A red arrow is a refusal, and it changes nothing.
 
-`GET /dispatches/{reservationId}` answers the tracking number, the carrier's status and the estimated delivery date of
-a dispatched reservation. The date is kept as the carrier gave it when it booked the parcel, or null if it gave none: a
-booked parcel goes on either way.
+`POST /dispatches` takes the delivery address the Shop gives, and passes it to the carrier as it is: the Warehouse does
+not check it, and a refusal of the carrier comes back as 503. A dispatch without an address books as before.
+
+`GET /dispatches/{reservationId}` answers the tracking number, the carrier's status, the estimated delivery date and,
+once delivered, the time of delivery, each as the carrier gave it, or null where it gave none.
 
 ## How a change gets here
 
@@ -39,9 +41,11 @@ so a change that breaks what the Shop calls or reads, with nothing for the Shop 
 
 ## Built from the model
 
-[The pull request](https://github.com/radicaltools/radical.sdlc.demo.warehouse/pull/3) that added the estimated delivery date came from the coding agent, with no ticket here. It
-read what changed in the model, built the part this repository answers for, bound its tests to the scenarios, and left
-the Shop's part alone. Its Gate read 28 of 28 requirements verified.
+[The pull request](https://github.com/radicaltools/radical.sdlc.demo.warehouse/pull/13) that takes the delivery address
+came from the coding agent, on the branch `change/22`, with no ticket here. It read what changed in the model, built the
+part this repository answers for, and bound its tests to the scenarios; where the model was not enough, it asked, and
+built again once the model said it. Its text shows the proof of its tests: each test of a changed scenario fails with
+the code of main and passes with the branch's. A person accepted it together with the model and the Shop's part.
 
 Findings of exploratory rounds are in `.radical/crucible/findings`, some of them still open.
 
@@ -49,7 +53,7 @@ Findings of exploratory rounds are in `.radical/crucible/findings`, some of them
 
 ```bash
 npm ci
-npm run standards        # .radical/model (this repository's part), .standards/, and the agents' skills
+npm run standards        # .radical/model (judged on this repository's part), .standards/, and the agents' skills
 npm test
 npm run stack            # the services on :3011 and :3012, with a stand-in for the carrier
 ```
