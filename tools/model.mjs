@@ -8,7 +8,7 @@
 //                                  judges, so a change of the model turns nothing red here
 //   node tools/model.mjs --whole [--ref <branch>]   the model as main, or a change's branch, has it, for the
 //                                  agent, with the commit in .agent/desired
-import { execFileSync, execSync } from 'node:child_process'
+import { execFileSync, execSync, spawnSync } from 'node:child_process'
 import { cpSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 
 const ARCHITECTURE = 'https://github.com/radicaltools/radical.sdlc.demo.architecture.git'
@@ -22,10 +22,16 @@ execFileSync('git', ['fetch', '--quiet', '--no-tags', ARCHITECTURE, '+refs/heads
 const commit = whole
   ? execFileSync('git', ['rev-parse', `refs/architecture/${ref}`], { encoding: 'utf8' }).trim()
   : JSON.parse(readFileSync('.radical/reconciled.json', 'utf8')).model
+// The pipeline's scripts (the sensor crosses among them) come from the tip of the change's branch, or of
+// main, not from the commit the code has reached: a fix of the pipeline in a change counts from its push.
+const branch = process.env.GITHUB_HEAD_REF || execFileSync('git', ['branch', '--show-current'], { encoding: 'utf8' }).trim()
+const fetched = (ref) => spawnSync('git', ['rev-parse', '-q', '--verify', ref]).status === 0
+const latest = /^change\/\d+$/.test(branch) && fetched(`refs/architecture/${branch}`) ? `refs/architecture/${branch}` : 'refs/architecture/main'
 rmSync(SYSTEM, { recursive: true, force: true })
 rmSync('.radical/model', { recursive: true, force: true })
 mkdirSync(SYSTEM, { recursive: true })
-execSync(`git archive ${commit} .radical/model .radical/system.json pipeline | tar -x -C ${SYSTEM}`)
+execSync(`git archive ${commit} .radical/model | tar -x -C ${SYSTEM}`)
+execSync(`git archive ${whole ? commit : latest} .radical/system.json pipeline | tar -x -C ${SYSTEM}`)
 cpSync(`${SYSTEM}/.radical/model`, '.radical/model', { recursive: true })
 if (whole) writeFileSync('.agent/desired', `${commit}\n`)
 console.log(`The model at ${commit.slice(0, 7)} in .radical/model.`)
