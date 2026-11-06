@@ -11,6 +11,7 @@ let apps: FastifyInstance[] = []
 let stockUrl = ''
 let dispatchUrl = ''
 let carrierUp = true
+let carrierRefuses = false
 let carrierGivesDate = true
 const parcels: unknown[] = []
 const listen = (app: FastifyInstance) => app.listen({ host: '127.0.0.1', port: 0 })
@@ -24,6 +25,7 @@ beforeAll(async () => {
   const carrier = Fastify()
   carrier.post('/parcels', async (request, reply) => {
     if (!carrierUp) return reply.code(503).send({ error: 'closed' })
+    if (carrierRefuses) return reply.code(422).send({ error: 'refused' })
     parcels.push(request.body)
     return carrierGivesDate
       ? { trackingNumber: `T-${parcels.length}`, estimatedDeliveryDate: '2026-11-20' }
@@ -91,6 +93,20 @@ describe('stack', () => {
     carrierUp = false
     expect((await post(`${dispatchUrl}/dispatches`, { reservationId: id, deliveryAddress: address }, 'B')).status).toBe(503)
     carrierUp = true
+    expect((await (await fetch(`${stockUrl}/reservations/${id}`)).json() as { status: string }).status).toBe('held')
+  })
+  it('keeps a reservation held when the carrier refuses the booking', async () => {
+    await post(`${stockUrl}/stock/receipts`, { sku: 'burr', quantity: 5 })
+    const { id } = await (await post(`${stockUrl}/reservations`, { lines: [{ sku: 'burr', quantity: 1 }] }, 'E')).json() as { id: string }
+    const booked = parcels.length
+    carrierRefuses = true
+    try {
+      expect((await post(`${dispatchUrl}/dispatches`, { reservationId: id, deliveryAddress: address }, 'E')).status).toBe(503)
+    } finally {
+      carrierRefuses = false
+    }
+    expect(parcels).toHaveLength(booked)
+    expect(await (await fetch(`${stockUrl}/stock/burr`)).json()).toEqual({ sku: 'burr', available: 4, onHand: 5, held: 1 })
     expect((await (await fetch(`${stockUrl}/reservations/${id}`)).json() as { status: string }).status).toBe('held')
   })
 })

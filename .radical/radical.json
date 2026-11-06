@@ -143,6 +143,9 @@
     ] },
     { "element": "69658c50-a6dc-44c0-ac54-3ab7670523c8", "name": "Address in dispatch OpenAPI", "tests": [
       "services/dispatch/test/openapi.test.ts › openapi › describes the body of POST /dispatches with reservationId required and deliveryAddress optional"
+    ] },
+    { "element": "5081f326-923a-42de-bef9-5fdf75ca1f4a", "name": "Carrier refuses booking", "tests": [
+      "tests/stack.test.ts › stack › keeps a reservation held when the carrier refuses the booking"
     ] }
   ]
 }
