@@ -18,6 +18,10 @@ describe('openapi', () => {
     expect(Object.keys(get!.responses).sort()).toEqual(['200', '404', '503'])
     expect(get!.responses['200'].content?.['application/json']?.schema?.required).toEqual(['reservationId', 'trackingNumber', 'estimatedDeliveryDate', 'status', 'deliveredAt'])
   })
+  it('describes the status of GET /dispatches/{reservationId} with in-transit, out-for-delivery, delivered and lost', () => {
+    const schema = api.paths['/dispatches/{reservationId}']?.get?.responses['200'].content?.['application/json']?.schema as { properties?: Record<string, { enum?: string[] }> }
+    expect(schema.properties?.status?.enum).toEqual(['in-transit', 'out-for-delivery', 'delivered', 'lost'])
+  })
   it('describes the 201 of POST /dispatches with the tracking number and the estimated delivery date', () => {
     const created = api.paths['/dispatches']?.post?.responses['201']
     expect(created?.content?.['application/json']?.schema?.required).toEqual(['reservationId', 'trackingNumber', 'estimatedDeliveryDate'])

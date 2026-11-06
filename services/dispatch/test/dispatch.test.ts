@@ -204,8 +204,24 @@ describe('carrier status', () => {
     expect(calls.asked).toEqual([])
     expect(stored.get('r-1')?.status).toBe('dispatched')
   })
+  it('answers out-for-delivery when the carrier reports the parcel out for delivery', async () => {
+    const carrier = await carrierAt('out-for-delivery')
+    try {
+      const { stored, calls, neighbours } = stockWith('TRK-1', '2026-11-20', held)
+      const app = buildServer({ ...neighbours, parcelStatus: neighboursAt('http://127.0.0.1:1', carrier.url).parcelStatus })
+      await dispatchR1(app)
+      const booked = calls.booked
+      const response = await statusOf(app, 'r-1')
+      expect(response.statusCode).toBe(200)
+      expect(response.json()).toEqual({ reservationId: 'r-1', trackingNumber: 'TRK-1', estimatedDeliveryDate: '2026-11-20', status: 'out-for-delivery', deliveredAt: null })
+      expect(calls.booked).toBe(booked)
+      expect(stored.get('r-1')?.status).toBe('dispatched')
+    } finally {
+      await carrier.close()
+    }
+  })
   it('answers 503 when the carrier answers a status it does not know', async () => {
-    const carrier = await carrierAt('returned')
+    const carrier = await carrierAt('archived')
     try {
       const { stored, neighbours } = stockWith('TRK-1', '2026-11-20', held)
       const app = buildServer({ ...neighbours, parcelStatus: neighboursAt('http://127.0.0.1:1', carrier.url).parcelStatus })
