@@ -1,6 +1,6 @@
 // The real calls to the stock service and the carrier.
 
-import type { Booking, CarrierStatus, ParcelStatus, Reservation } from '@warehouse/contracts'
+import type { Booking, CarrierStatus, DeliveryAddress, ParcelStatus, Reservation } from '@warehouse/contracts'
 import { CarrierDown, type Neighbours } from './dispatcher.js'
 
 const carrierStatuses: readonly string[] = ['in-transit', 'delivered', 'lost']
@@ -17,12 +17,14 @@ export function neighboursAt(stockUrl: string, carrierUrl: string): Neighbours {
       const response = await fetch(`${stockUrl}/reservations/${encodeURIComponent(id)}/dispatch`, { method: 'POST' })
       if (!response.ok) throw new Error(`Stock answered ${response.status}`)
     },
-    async book(reservation) {
+    async book(reservation, deliveryAddress) {
       try {
+        // Without an address the body is what it was before: the address is added only when the dispatch gave one.
+        const parcel = { reference: reservation.id, lines: reservation.lines, ...(deliveryAddress ? { deliveryAddress } : {}) }
         const response = await fetch(`${carrierUrl}/parcels`, {
           method: 'POST',
           headers: { 'content-type': 'application/json' },
-          body: JSON.stringify({ reference: reservation.id, lines: reservation.lines }),
+          body: JSON.stringify(parcel),
         })
         if (!response.ok) throw new Error(`The carrier answered ${response.status}`)
         const answer = (await response.json()) as { trackingNumber: string; estimatedDeliveryDate?: unknown }

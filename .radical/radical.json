@@ -137,6 +137,12 @@
     ] },
     { "element": "f1cf2eb2-1819-4162-99c0-42c4987869ab", "name": "Delivered without a time at the carrier", "tests": [
       "services/dispatch/test/dispatch.test.ts › carrier status › answers delivered without a time when the carrier gives none, and asks the carrier only"
+    ] },
+    { "element": "f9f63e18-b955-42b5-8f12-adc0e7981b31", "name": "Dispatch without address books as before", "tests": [
+      "tests/stack.test.ts › stack › books as before for a dispatch without a delivery address"
+    ] },
+    { "element": "69658c50-a6dc-44c0-ac54-3ab7670523c8", "name": "Address in dispatch OpenAPI", "tests": [
+      "services/dispatch/test/openapi.test.ts › openapi › describes the body of POST /dispatches with reservationId required and deliveryAddress optional"
     ] }
   ]
 }

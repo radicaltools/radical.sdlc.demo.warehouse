@@ -38,15 +38,35 @@ beforeAll(async () => {
 })
 afterAll(() => Promise.all(apps.map((a) => a.close())))
 
+const address = { street: 'Dluga 1', city: 'Warsaw', postalCode: '00-001', country: 'PL' }
+
 describe('stack', () => {
   it('takes dispatched goods off the shelf', async () => {
     await post(`${stockUrl}/stock/receipts`, { sku: 'grinder', quantity: 10 })
     const { id } = await (await post(`${stockUrl}/reservations`, { lines: [{ sku: 'grinder', quantity: 3 }] }, 'A')).json() as { id: string }
-    const dispatched = await post(`${dispatchUrl}/dispatches`, { reservationId: id }, 'A')
+    const dispatched = await post(`${dispatchUrl}/dispatches`, { reservationId: id, deliveryAddress: address }, 'A')
     expect(dispatched.status).toBe(201)
     expect(await dispatched.json()).toEqual({ reservationId: id, trackingNumber: 'T-1', estimatedDeliveryDate: '2026-11-20' })
     expect(parcels).toHaveLength(1)
+    expect(parcels[0]).toEqual({ reference: id, lines: [{ sku: 'grinder', quantity: 3 }], deliveryAddress: address })
     expect(await (await fetch(`${stockUrl}/stock/grinder`)).json()).toEqual({ sku: 'grinder', available: 7, onHand: 7, held: 0 })
+  })
+  it('books as before for a dispatch without a delivery address', async () => {
+    await post(`${stockUrl}/stock/receipts`, { sku: 'lamp', quantity: 5 })
+    const { id } = await (await post(`${stockUrl}/reservations`, { lines: [{ sku: 'lamp', quantity: 1 }] }, 'D')).json() as { id: string }
+    const booked = parcels.length
+    carrierGivesDate = false
+    try {
+      const dispatched = await post(`${dispatchUrl}/dispatches`, { reservationId: id }, 'D')
+      expect(dispatched.status).toBe(201)
+      expect(await dispatched.json()).toEqual({ reservationId: id, trackingNumber: `T-${booked + 1}`, estimatedDeliveryDate: null })
+    } finally {
+      carrierGivesDate = true
+    }
+    expect(parcels).toHaveLength(booked + 1)
+    expect(parcels[booked]).toEqual({ reference: id, lines: [{ sku: 'lamp', quantity: 1 }] })
+    expect(await (await fetch(`${stockUrl}/stock/lamp`)).json()).toEqual({ sku: 'lamp', available: 4, onHand: 4, held: 0 })
+    expect((await (await fetch(`${stockUrl}/reservations/${id}`)).json() as { status: string }).status).toBe('dispatched')
   })
   it('takes dispatched goods off the shelf when the carrier gives no date', async () => {
     await post(`${stockUrl}/stock/receipts`, { sku: 'kettle', quantity: 10 })
@@ -54,13 +74,14 @@ describe('stack', () => {
     const booked = parcels.length
     carrierGivesDate = false
     try {
-      const dispatched = await post(`${dispatchUrl}/dispatches`, { reservationId: id }, 'C')
+      const dispatched = await post(`${dispatchUrl}/dispatches`, { reservationId: id, deliveryAddress: address }, 'C')
       expect(dispatched.status).toBe(201)
       expect(await dispatched.json()).toEqual({ reservationId: id, trackingNumber: `T-${booked + 1}`, estimatedDeliveryDate: null })
     } finally {
       carrierGivesDate = true
     }
     expect(parcels).toHaveLength(booked + 1)
+    expect(parcels[booked]).toMatchObject({ deliveryAddress: address })
     expect(await (await fetch(`${stockUrl}/stock/kettle`)).json()).toEqual({ sku: 'kettle', available: 7, onHand: 7, held: 0 })
     expect((await (await fetch(`${stockUrl}/reservations/${id}`)).json() as { status: string }).status).toBe('dispatched')
   })
@@ -68,7 +89,7 @@ describe('stack', () => {
     await post(`${stockUrl}/stock/receipts`, { sku: 'mug', quantity: 2 })
     const { id } = await (await post(`${stockUrl}/reservations`, { lines: [{ sku: 'mug', quantity: 1 }] }, 'B')).json() as { id: string }
     carrierUp = false
-    expect((await post(`${dispatchUrl}/dispatches`, { reservationId: id }, 'B')).status).toBe(503)
+    expect((await post(`${dispatchUrl}/dispatches`, { reservationId: id, deliveryAddress: address }, 'B')).status).toBe(503)
     carrierUp = true
     expect((await (await fetch(`${stockUrl}/reservations/${id}`)).json() as { status: string }).status).toBe('held')
   })

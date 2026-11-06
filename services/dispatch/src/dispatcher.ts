@@ -2,14 +2,14 @@
 // the stock service take the goods off the shelf. A carrier that was booked is
 // not booked again when the stock service failed after it.
 
-import type { Booking, Dispatched, DispatchStatus, ParcelStatus, Reservation } from '@warehouse/contracts'
+import type { Booking, Dispatched, DispatchStatus, DeliveryAddress, ParcelStatus, Reservation } from '@warehouse/contracts'
 
 export interface Neighbours {
   /** The reservation, or undefined when there is none. Throws when stock cannot be reached. */
   reservation(id: string): Promise<Reservation | undefined>
   markDispatched(id: string): Promise<void>
-  /** The tracking number and the estimated delivery date, or null. Throws CarrierDown when the carrier cannot be reached. */
-  book(reservation: Reservation): Promise<Booking>
+  /** The tracking number and the estimated delivery date, or null. The address is undefined when the dispatch gave none. Throws CarrierDown when the carrier cannot be reached. */
+  book(reservation: Reservation, deliveryAddress: DeliveryAddress | undefined): Promise<Booking>
   /** The carrier's status of a parcel, and its delivery time. Throws CarrierDown when the carrier does not answer with a known status. */
   parcelStatus(trackingNumber: string): Promise<ParcelStatus>
 }
@@ -46,26 +46,26 @@ export class Dispatcher {
     return { reservationId, trackingNumber, estimatedDeliveryDate, status: parcel.status, deliveredAt }
   }
 
-  dispatch(key: string, reservationId: string): Promise<Dispatched> {
+  dispatch(key: string, reservationId: string, deliveryAddress?: DeliveryAddress): Promise<Dispatched> {
     const known = this.byKey.get(key)
     if (known) return Promise.resolve(known)
     const running = this.inFlight.get(key)
     if (running) return running
-    const attempt = this.run(key, reservationId)
+    const attempt = this.run(key, reservationId, deliveryAddress)
     this.inFlight.set(key, attempt)
     const done = () => { this.inFlight.delete(key) }
     attempt.then(done, done)
     return attempt
   }
 
-  private async run(key: string, reservationId: string): Promise<Dispatched> {
+  private async run(key: string, reservationId: string, deliveryAddress: DeliveryAddress | undefined): Promise<Dispatched> {
     const reservation = await this.neighbours.reservation(reservationId)
     if (!reservation) throw new UnknownReservation(`No reservation ${reservationId}`)
     if (reservation.status !== 'held') throw new NotHeld(`A ${reservation.status} reservation cannot be dispatched`)
     let booking = this.booked.get(reservationId)
     if (!booking) {
       // Stored before the first await, so a call that comes meanwhile shares this booking.
-      booking = this.neighbours.book(reservation)
+      booking = this.neighbours.book(reservation, deliveryAddress)
       this.booked.set(reservationId, booking)
       booking.catch(() => { this.booked.delete(reservationId) })
     }

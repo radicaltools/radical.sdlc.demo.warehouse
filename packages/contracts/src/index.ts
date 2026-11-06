@@ -29,8 +29,10 @@ export interface Receipt { sku: string; quantity: number }
 
 /** POST /reservations/{id}/return on the stock service, with an Idempotency-Key header and no body. */
 
-/** POST /dispatches on the dispatch service, with an Idempotency-Key header. */
-export interface DispatchRequest { reservationId: string }
+/** The address a parcel goes to, as the Shop gives it (the country a two-letter code such as PL). */
+export interface DeliveryAddress { street: string; city: string; postalCode: string; country: string }
+/** POST /dispatches on the dispatch service, with an Idempotency-Key header. The deliveryAddress is optional: a dispatch without it books the carrier as before. */
+export interface DispatchRequest { reservationId: string; deliveryAddress?: DeliveryAddress }
 /** The carrier's answer to a booking: the tracking number, and the estimated delivery date as the carrier gave it, or null when it gave none. */
 export interface Booking { trackingNumber: string; estimatedDeliveryDate: string | null }
 /** The answer 201 of POST /dispatches on the dispatch service. */
