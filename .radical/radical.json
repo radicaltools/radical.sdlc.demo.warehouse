@@ -146,6 +146,9 @@
     ] },
     { "element": "5081f326-923a-42de-bef9-5fdf75ca1f4a", "name": "Carrier refuses booking", "tests": [
       "tests/stack.test.ts › stack › keeps a reservation held when the carrier refuses the booking"
+    ] },
+    { "element": "854d75c4-f913-479e-ab31-a539af0ac836", "name": "Unchecked address forwarded", "tests": [
+      "tests/stack.test.ts › stack › forwards an address the Warehouse does not check, and keeps the reservation held"
     ] }
   ]
 }
