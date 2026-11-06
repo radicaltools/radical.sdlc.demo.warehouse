@@ -22,7 +22,10 @@ const isCount = (n: unknown): n is number => Number.isInteger(n) && (n as number
 /** The number in a reservation id: r-2 is made before r-10, though "r-10" sorts first as text. */
 const numberOf = (id: string): number => Number(id.replace(/^r-/, ''))
 
-const sameLines = (a: ReservationLine[], b: ReservationLine[]): boolean =>
+/** A release key is seen for one reservation: the same key on another reservation is not the same request. */
+const releaseKeyOf = (id: string, key: string): string => `${id}\n${key}`
+
+const sameLines =(a: ReservationLine[], b: ReservationLine[]): boolean =>
   Array.isArray(b) && a.length === b.length && a.every((l, i) => l.sku === b[i]?.sku && l.quantity === b[i]?.quantity)
 
 export class StockLedger {
@@ -30,6 +33,7 @@ export class StockLedger {
   private reservations = new Map<string, Reservation>()
   private byKey = new Map<string, Reservation>()
   private returnKeys = new Map<string, Reservation>()
+  private releaseKeys = new Map<string, Reservation>()
   private next = 1
 
   /** Holds every line or none. A key already seen answers with its reservation, and only for the same lines. */
@@ -59,12 +63,18 @@ export class StockLedger {
     return this.reservations.get(id)
   }
 
-  /** Gives held goods back. Releasing a released reservation changes nothing. */
-  release(id: string): Reservation {
+  /**
+   * Gives held goods back. A key already seen for this reservation answers as it did, and changes nothing
+   * (ADR Retried writes change nothing). Releasing a released reservation changes nothing either.
+   */
+  release(key: string, id: string): Reservation {
     const reservation = this.known(id)
+    const seen = this.releaseKeys.get(releaseKeyOf(id, key))
+    if (seen) return seen
     if (reservation.status === 'released') return reservation
     this.mustBeHeld(reservation, 'released')
     for (const { sku, quantity } of reservation.lines) this.item(sku).held -= quantity
+    this.releaseKeys.set(releaseKeyOf(id, key), reservation)
     return this.become(reservation, 'released')
   }
 

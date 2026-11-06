@@ -33,8 +33,11 @@ export function buildServer(ledger = new StockLedger()): FastifyInstance {
     return reservation ?? reply.code(404).send({ error: `No reservation ${request.params.id}` })
   })
 
-  app.post<{ Params: { id: string } }>('/reservations/:id/release', async (request, reply) =>
-    answer(reply, () => ledger.release(request.params.id)))
+  app.post<{ Params: { id: string } }>('/reservations/:id/release', async (request, reply) => {
+    const key = request.headers['idempotency-key']
+    if (typeof key !== 'string' || !key) return reply.code(400).send({ error: 'A release needs an Idempotency-Key header' })
+    return answer(reply, () => ledger.release(key, request.params.id))
+  })
 
   app.post<{ Params: { id: string } }>('/reservations/:id/dispatch', async (request, reply) =>
     answer(reply, () => ledger.dispatch(request.params.id)))

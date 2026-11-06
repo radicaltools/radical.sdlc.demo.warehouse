@@ -46,8 +46,26 @@ describe('stock', () => {
     await ready
     const { id } = (await post('/reservations', { lines: [{ sku: 'grinder', quantity: 3 }] }, 'A')).json()
     expect((await stockOf('grinder')).available).toBe(7)
-    expect((await post(`/reservations/${id}/release`)).json().status).toBe('released')
+    expect((await post(`/reservations/${id}/release`, undefined, 'k-1')).json().status).toBe('released')
     expect((await stockOf('grinder')).available).toBe(10)
+  })
+  it('answers a repeated release the same and changes nothing', async () => {
+    const { post, stockOf, ready } = warehouse({ grinder: 10 })
+    await ready
+    const { id } = (await post('/reservations', { lines: [{ sku: 'grinder', quantity: 3 }] }, 'A')).json()
+    const first = await post(`/reservations/${id}/release`, undefined, 'k-1')
+    const second = await post(`/reservations/${id}/release`, undefined, 'k-1')
+    expect(second.statusCode).toBe(200)
+    expect(second.json()).toEqual(first.json())
+    expect(second.json().status).toBe('released')
+    expect(await stockOf('grinder')).toEqual({ sku: 'grinder', available: 10, onHand: 10, held: 0 })
+  })
+  it('refuses a release without a key', async () => {
+    const { post, stockOf, ready } = warehouse({ grinder: 10 })
+    await ready
+    const { id } = (await post('/reservations', { lines: [{ sku: 'grinder', quantity: 3 }] }, 'A')).json()
+    expect((await post(`/reservations/${id}/release`)).statusCode).toBe(400)
+    expect(await stockOf('grinder')).toEqual({ sku: 'grinder', available: 7, onHand: 10, held: 3 })
   })
   it('adds a delivery to what is on hand', async () => {
     const { post, stockOf, ready } = warehouse({ mug: 4 })
@@ -99,7 +117,7 @@ describe('stock', () => {
     const { id } = (await post('/reservations', { lines: [{ sku: 'grinder', quantity: 3 }] }, 'A')).json()
     await post(`/reservations/${id}/dispatch`)
     const before = await stockOf('grinder')
-    expect((await post(`/reservations/${id}/release`)).statusCode).toBe(409)
+    expect((await post(`/reservations/${id}/release`, undefined, 'k-2')).statusCode).toBe(409)
     expect(await stockOf('grinder')).toEqual(before)
   })
   it('refuses a reused key with another body', async () => {
@@ -144,7 +162,7 @@ describe('stock', () => {
     const { post, stockOf, ready } = warehouse({ grinder: 10 })
     await ready
     const { id } = (await post('/reservations', { lines: [{ sku: 'grinder', quantity: 3 }] }, 'A')).json()
-    await post(`/reservations/${id}/release`)
+    await post(`/reservations/${id}/release`, undefined, 'k-1')
     expect((await post(`/reservations/${id}/return`, undefined, 'K')).statusCode).toBe(409)
     expect(await stockOf('grinder')).toEqual({ sku: 'grinder', available: 10, onHand: 10, held: 0 })
   })
@@ -228,7 +246,7 @@ describe('stock', () => {
     const released = (await post('/reservations', { lines: [{ sku: 'GRN-1', quantity: 3 }] }, 'A')).json()
     const dispatched = (await post('/reservations', { lines: [{ sku: 'GRN-1', quantity: 1 }] }, 'B')).json()
     const held = (await post('/reservations', { lines: [{ sku: 'GRN-1', quantity: 2 }] }, 'C')).json()
-    await post(`/reservations/${released.id}/release`)
+    await post(`/reservations/${released.id}/release`, undefined, 'k-1')
     await post(`/reservations/${dispatched.id}/dispatch`)
     expect(held.id).toBe('r-3')
     const response = await app.inject({ method: 'GET', url: '/stock/GRN-1/reservations' })
