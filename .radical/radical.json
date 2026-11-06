@@ -1,4 +1,5 @@
 {
+  "model": { "repo": "https://github.com/radicaltools/radical.tools.sdlc.demo.3.architecture.git", "ref": "main" },
   "ci": { "artifacts": ["test-reports"] },
   "implements": [
     { "element": "c9564efd-da08-460c-ad95-d11f77748691", "name": "Warehouse", "paths": ["services", "packages"] },
