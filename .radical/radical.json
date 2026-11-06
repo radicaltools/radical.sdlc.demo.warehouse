@@ -152,6 +152,9 @@
     ] },
     { "element": "de5d2cb5-36bd-463b-9336-1625671cc9d1", "name": "Carrier status out for delivery", "tests": [
       "services/dispatch/test/dispatch.test.ts › carrier status › answers out-for-delivery when the carrier reports the parcel out for delivery"
+    ] },
+    { "element": "09155768-81b2-453e-b699-8050a57dd6c5", "name": "Released again with same key", "tests": [
+      "services/stock/test/stock.test.ts › stock › answers a repeated release the same and changes nothing"
     ] }
   ]
 }

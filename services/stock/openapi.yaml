@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Stock service
-  version: 1.4.0
+  version: 1.5.0
   description: What is on the shelves and what is reserved. Part of the Warehouse.
 paths:
   /reservations:
@@ -32,8 +32,10 @@ paths:
       summary: Gives the goods of a held reservation back
       parameters:
         - { name: id, in: path, required: true, schema: { type: string } }
+        - { name: Idempotency-Key, in: header, required: true, schema: { type: string } }
       responses:
-        '200': { description: The released reservation, content: { application/json: { schema: { $ref: '#/components/schemas/Reservation' } } } }
+        '200': { description: The released reservation, the same one for a key already seen with this reservation; nothing changes for a repeat, content: { application/json: { schema: { $ref: '#/components/schemas/Reservation' } } } }
+        '400': { description: No key }
         '404': { description: No such reservation }
         '409': { description: It was dispatched already }
   /reservations/{id}/dispatch:
