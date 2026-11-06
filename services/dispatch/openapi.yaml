@@ -47,7 +47,7 @@ paths:
                     street: { type: string }
                     city: { type: string }
                     postalCode: { type: string }
-                    country: { type: string, pattern: '^[A-Z]{2}$', description: "A two-letter country code, such as PL" }
+                    country: { type: string, description: "The country as the Shop gave it, passed on to the carrier unchecked; a two-letter code such as PL" }
       responses:
         '201':
           description: The tracking number and the estimated delivery date, the same ones for a key already seen
