@@ -7,9 +7,9 @@
     "node": ">=20.11"
   },
   "devDependencies": {
-    "@radicaltools/cli": "0.3.3",
+    "@radicaltools/cli": "0.3.4",
     "@radicaltools/crucible": "^0.3.2",
-    "@radicaltools/mcp": "0.3.3",
+    "@radicaltools/mcp": "0.3.4",
     "@types/node": "^24.0.0",
     "typescript": "^5.9.3",
     "vitest": "^4.1.4",
