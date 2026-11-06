@@ -1,15 +1,12 @@
 # radical.sdlc.demo.warehouse
 
-The Warehouse, one of the repositories that build one system with one model. [The architecture
-repository](https://github.com/radicaltools/radical.sdlc.demo.architecture#readme) holds the model
-and says how it all fits together. This repository holds code, and two files about the model:
+**The Warehouse of [radical.sdlc.demo](https://github.com/radicaltools/radical.sdlc.demo.architecture#readme)**: what is on
+the shelves, what is held for paid orders, and sending the goods with the carrier. The [Shop](https://github.com/radicaltools/radical.sdlc.demo.shop)
+calls it over HTTP.
 
-```
-.radical/radical.json     which folder builds which element, which test checks which scenario
-.radical/reconciled.json  the commit of the model this code has reached
-.radical/sensors/         what measures its own fitness functions; the standards' are in .standards/
-tools/model.mjs           fetches the model into .radical/model, out of git
-```
+This repository holds code and no model. The model of the whole system, the Warehouse and the Shop together, is in the
+[architecture repository](https://github.com/radicaltools/radical.sdlc.demo.architecture), and so is the pipeline that
+brings changes here. Agents write most of the code here, from that model, and a person accepts it.
 
 ## What it does
 
@@ -17,35 +14,71 @@ tools/model.mjs           fetches the model into .radical/model, out of git
 
 Each lane is who does the step. A red arrow is a refusal, and it changes nothing.
 
-`POST /dispatches` takes the delivery address the Shop gives, and passes it to the carrier as it is: the Warehouse does
-not check it, and a refusal of the carrier comes back as 503. A dispatch without an address books as before.
+**The stock service** (`services/stock`, port 3011) knows what is on hand and what is held:
 
-`GET /dispatches/{reservationId}` answers the tracking number, the carrier's status, the estimated delivery date and,
-once delivered, the time of delivery, each as the carrier gave it, or null where it gave none.
+- `POST /stock/receipts` records goods that arrived; `GET /stock`, `GET /stock/{sku}` and `GET /stock/{sku}/reservations` read.
+- `POST /reservations` holds every line of an order or none, and answers what is short. Named by an `Idempotency-Key`,
+  so a retried reservation holds once.
+- A reservation is released, dispatched or returned (`POST /reservations/{id}/release`, `/dispatch`, `/return`), as
+  its state machine in the model allows.
 
-## How a change gets here
+**The dispatch service** (`services/dispatch`, port 3012) sends the goods:
 
-![A person opens a ticket. The model agent models the change of the whole system on a branch, says on the ticket what it understood, and a review agent reads the change against the ticket. After a green Gate the system loop starts the Warehouse first, because the Shop calls it, then the Shop, each building on the same branch. A coding agent's question goes to the model agent, who answers in the model, and the loop builds again. When every Gate is green, the evidence goes on the ticket, a person accepts it all at once, and the loop merges the model first, then the code.](https://raw.githubusercontent.com/radicaltools/radical.sdlc.demo.architecture/main/docs/sdlc.svg)
+- `POST /dispatches` books the carrier for a held reservation, once per key, with the delivery address the Shop gives,
+  passed on as it is, and has the stock service take the goods off the shelf. When the carrier cannot be reached, the
+  reservation stays held and the answer is 503.
+- `GET /dispatches/{reservationId}` answers the tracking number, the carrier's status, the estimated delivery date and,
+  once delivered, the time of delivery, each as the carrier gave it.
 
-Yellow is a person, violet an agent on Claude Code, and green has no AI and gives the same answer every time. The dark boxes are the Gates, the one required check of each repository.
+Both are described in their `openapi.yaml`, and `packages/contracts` holds the types they share, with no behaviour.
 
-Tickets go to [the architecture repository](https://github.com/radicaltools/radical.sdlc.demo.architecture#how-a-change-gets-through),
-never here. A change lives on the branch `change/<n>` of its ticket, in the architecture repository and in each
-repository it touches. When this repository's part of the model on that branch is not built, its coding agent builds
-it there, in a draft pull request with the proof of its tests, and the Gate decides. When a change crosses both
-repositories, this one goes first, because the Shop calls it. Nobody merges here by hand: a person accepts the whole change on its ticket, and the
-loop merges every pull request of it.
+## How the model reaches the code
 
-The sensor `crosses` runs a pull request's code with the Shop's code on the same change's branch, or else its main branch,
-so a change that breaks what the Shop calls or reads, with nothing for the Shop on the branch, is red here.
+```
+.radical/radical.json     which folder builds which element of the model, which test checks which scenario,
+                          and where the model is ("model": the architecture repository)
+.radical/reconciled.json  the commit of the model this code has reached
+.radical/sensors/         what measures this repository's own fitness functions
+tools/model.mjs           fetches the model into .radical/model, out of git
+```
+
+The model names this repository's elements: the Warehouse, its two services and the shared contracts. Those, and all
+that hangs on them, are **its part**: the requirements they satisfy, the reservation's state machine, the scenarios, the
+decisions that constrain them and their fitness functions. The `radical` CLI judges this repository on that part only.
+
+A change of the system lives on a branch `change/<n>` here and in the architecture repository. When the model on that
+branch asks for something of this part, the pipeline there starts this repository's `reconcile.yml`. Its coding agent
+reads what changed in the model (never the ticket), builds it on `change/<n>`, binds the tests to the scenarios, and opens
+a draft pull request with the proof of its tests: each test of a changed scenario fails with the code of `main` and
+passes with the branch's. What the model does not say, it asks the model agent. When a change needs both systems, the
+Warehouse goes first, because the Shop calls it.
+
+Nobody merges here by hand. A person accepts the whole change on its ticket in the architecture repository, and the
+pipeline merges the model and every repository's pull request of it.
+[How a change gets through](https://github.com/radicaltools/radical.sdlc.demo.architecture#how-a-change-gets-through) is there.
+
+## The Gate
+
+Every pull request here runs the standards' Gate, the one required check, with no AI: the type check, the tests, the
+sensors of the fitness functions triggered on a pull request, a check that each agent stayed in its scope, and
+`radical check` of this repository's part.
+
+| Fitness function | Sensor | Runs |
+|---|---|---|
+| Services stay on their own (standards) | `boundaries` | every pull request, for each service |
+| API matches its description (standards) | `openapi` | every pull request |
+| Repeated write changes nothing (standards) | `idempotency` | every pull request |
+| Order crosses the systems | `crosses`: this code with the Shop's of the same change, or its `main`, running together | every pull request |
+| Rules hold in random sequences (standards) | `fuzz` | at night: not run in this demo yet |
+| No oversold stock | `oversell`: 200 reservations at once for 50 items | at night: not run yet |
+| Reservation reaches the carrier | `smoke`: the running stack, end to end | on deploy: not run yet |
 
 ## Built from the model
 
 [The pull request](https://github.com/radicaltools/radical.sdlc.demo.warehouse/pull/13) that takes the delivery address
-came from the coding agent, on the branch `change/22`, with no ticket here. It read what changed in the model, built the
-part this repository answers for, and bound its tests to the scenarios; where the model was not enough, it asked, and
-built again once the model said it. Its text shows the proof of its tests: each test of a changed scenario fails with
-the code of main and passes with the branch's. A person accepted it together with the model and the Shop's part.
+came from the coding agent, on `change/22`, with no ticket here. It asked the model agent four times while the model
+was not enough, built again each time the model said more, and carries the proof of its tests. A person accepted it
+together with the model and the Shop's part.
 
 Findings of exploratory rounds are in `.radical/crucible/findings`, some of them still open.
 
@@ -53,9 +86,9 @@ Findings of exploratory rounds are in `.radical/crucible/findings`, some of them
 
 ```bash
 npm ci
-npm run standards        # .radical/model (judged on this repository's part), .standards/, and the agents' skills
+npm run standards        # .radical/model, .standards/ at the model's tag, and the agents' skills
 npm test
-npm run stack            # the services on :3011 and :3012, with a stand-in for the carrier
+npm run stack            # the services on :3011 and :3012, with a stand-in for the carrier on :3013
 ```
 
 The whole model opens in [Radical Studio](https://radical.tools) from the architecture repository.
