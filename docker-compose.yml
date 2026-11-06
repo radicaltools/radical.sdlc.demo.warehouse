@@ -10,17 +10,17 @@ x-service: &service
 services:
   stock:
     <<: *service
-    image: ghcr.io/radicaltools/radical.tools.sdlc.demo.3.warehouse/stock:${TAG:-local}
+    image: ghcr.io/radicaltools/radical.sdlc.demo.warehouse/stock:${TAG:-local}
     build: { context: ., args: { SERVICE: stock } }
     ports: ["3011:3000"]
   carrier:
     <<: *service
-    image: ghcr.io/radicaltools/radical.tools.sdlc.demo.3.warehouse/dispatch:${TAG:-local}
+    image: ghcr.io/radicaltools/radical.sdlc.demo.warehouse/dispatch:${TAG:-local}
     build: { context: ., args: { SERVICE: dispatch } }
     command: ["node", "/app/tools/carrier-stand-in.mjs"]
   dispatch:
     <<: *service
-    image: ghcr.io/radicaltools/radical.tools.sdlc.demo.3.warehouse/dispatch:${TAG:-local}
+    image: ghcr.io/radicaltools/radical.sdlc.demo.warehouse/dispatch:${TAG:-local}
     build: { context: ., args: { SERVICE: dispatch } }
     environment:
       STOCK_URL: http://stock:3000

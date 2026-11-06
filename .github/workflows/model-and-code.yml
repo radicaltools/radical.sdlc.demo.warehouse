@@ -16,5 +16,5 @@ permissions:
 
 jobs:
   agents:
-    uses: radicaltools/radical.tools.sdlc.demo.2.standards/.github/workflows/model-and-code.yml@v2.3.0
+    uses: radicaltools/radical.sdlc.demo.standards/.github/workflows/model-and-code.yml@v2.3.0
     secrets: inherit

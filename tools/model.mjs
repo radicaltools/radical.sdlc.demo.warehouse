@@ -11,7 +11,7 @@
 import { execFileSync, execSync } from 'node:child_process'
 import { cpSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 
-const ARCHITECTURE = 'https://github.com/radicaltools/radical.tools.sdlc.demo.3.architecture.git'
+const ARCHITECTURE = 'https://github.com/radicaltools/radical.sdlc.demo.architecture.git'
 const SYSTEM = '.agent/system'
 const whole = process.argv.includes('--whole')
 const ref = process.argv.includes('--ref') ? process.argv[process.argv.indexOf('--ref') + 1] : 'main'

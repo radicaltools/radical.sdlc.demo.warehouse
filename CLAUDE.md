@@ -1,7 +1,7 @@
-# radical.tools.sdlc.demo.3.warehouse
+# radical.sdlc.demo.warehouse
 
 The Warehouse: one of the repositories that build one system, with one model.
-[The architecture repository](https://github.com/radicaltools/radical.tools.sdlc.demo.3.architecture#readme)
+[The architecture repository](https://github.com/radicaltools/radical.sdlc.demo.architecture#readme)
 holds that model, and says how they fit together.
 
 - `.radical/model/` is out of git, and comes from `npm run standards`. Read it only through the MCP

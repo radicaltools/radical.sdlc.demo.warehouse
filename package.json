@@ -1,5 +1,5 @@
 {
-  "name": "radical.tools.sdlc.demo.3.warehouse",
+  "name": "radical.sdlc.demo.warehouse",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -15,7 +15,7 @@
     "vitest": "^4.1.4",
     "yaml": "^2.8.0"
   },
-  "description": "The Warehouse of radical.tools.sdlc.demo.3: one of the repositories that build one system, with one model.",
+  "description": "The Warehouse of radical.sdlc.demo: one of the repositories that build one system, with one model.",
   "workspaces": [
     "packages/*",
     "services/*"
